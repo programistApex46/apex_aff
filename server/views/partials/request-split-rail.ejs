@@ -1,0 +1,9 @@
+<%
+  if (!request.is_split_member) return;
+  var depth = request.nest_depth || (request.is_subtask ? 1 : 0);
+%>
+<span
+  class="rh-split-rail<%= request.is_subtask ? ' rh-split-rail--branch' : ' rh-split-rail--root' %><% if (request.split_group_last) { %> rh-split-rail--last<% } %><% if (request.split_group_first) { %> rh-split-rail--first<% } %>"
+  style="--rh-split-depth: <%= depth %>"
+  aria-hidden="true"
+></span>

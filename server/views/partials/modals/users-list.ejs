@@ -1,0 +1,141 @@
+<%- include('../flash', { success, error }) %>
+
+<div class="rh-has-mobile-cards">
+  <div class="rh-table-panel rh-table-desktop">
+    <div class="rh-table-scroll">
+      <table class="rh-data-table rh-users-table">
+        <thead>
+          <tr>
+            <%- include('../table_th', { label: 'Stage' }) %>
+            <%- include('../table_th', { label: 'Email' }) %>
+            <% if (!isTeamlead) { %>
+              <%- include('../table_th', { label: 'Role' }) %>
+            <% } %>
+            <%- include('../table_th', { label: 'Company' }) %>
+            <%- include('../table_th', { label: 'Telegram' }) %>
+            <% if (!isTeamlead) { %>
+              <%- include('../table_th', { label: 'Team' }) %>
+            <% } %>
+            <%- include('../table_th', { label: 'Status' }) %>
+            <th class="rh-th rh-th-right"><span>Actions</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (!users.length) { %>
+            <tr>
+              <td colspan="<%= isTeamlead ? 5 : 8 %>" class="text-center rh-muted py-8 text-sm">
+                No users yet.
+              </td>
+            </tr>
+          <% } %>
+          <% users.forEach(function(u) {
+            var roleLabel = { admin: 'admin', teamlead: 'tl', buyer: 'buyer', aff: 'aff' }[u.role] || u.role;
+            var searchText = [
+              userStage(u),
+              u.username,
+              u.email,
+              u.role,
+              roleLabel,
+              u.display_company || u.company,
+              u.telegram_chat_id,
+              u.team_name,
+              u.team_lead_stage,
+              u.is_active ? 'active' : 'inactive',
+            ].filter(Boolean).join(' ');
+          %>
+            <tr class="<%= u.is_active ? '' : 'opacity-40' %>" data-rh-search="<%= searchText %>">
+              <td class="font-medium"><%= userStage(u) %></td>
+              <td><%= u.email || '' %></td>
+              <% if (!isTeamlead) { %>
+                <td><%= { admin: 'admin', teamlead: 'tl', buyer: 'buyer', aff: 'aff' }[u.role] || u.role %></td>
+              <% } %>
+              <td><%= u.display_company || u.company || '' %></td>
+              <td><%= u.telegram_chat_id || '' %></td>
+              <% if (!isTeamlead) { %>
+                <td>
+                  <% if (u.team_name) { %>
+                    <%= u.team_name %>
+                  <% } else if (u.role === 'buyer' && u.team_lead_stage) { %>
+                    <span class="rh-muted text-xs"><%= u.team_lead_stage %></span>
+                  <% } else { %>
+                    <span class="rh-table-empty"></span>
+                  <% } %>
+                </td>
+              <% } %>
+              <td>
+                <% if (u.is_active) { %>
+                  <span class="rh-status-done">Active</span>
+                <% } else { %>
+                  <span class="rh-muted">Inactive</span>
+                <% } %>
+              </td>
+              <td class="rh-table-actions">
+                <button
+                  type="button"
+                  class="btn btn-ghost btn-xs btn-square"
+                  title="Edit"
+                  hx-get="/users/<%= u.id %>/edit-modal"
+                  hx-target="#modal-body"
+                  hx-swap="innerHTML"
+                >
+                  <%- include('../icon', { name: 'pencil', className: 'w-3.5 h-3.5' }) %>
+                </button>
+                <% if (u.is_active) { %>
+                  <button
+                    type="button"
+                    class="btn btn-ghost btn-xs btn-square text-error"
+                    title="Deactivate"
+                    hx-post="/users/<%= u.id %>/delete"
+                    hx-target="#modal-body"
+                    hx-swap="innerHTML"
+                    hx-confirm="Deactivate this user?"
+                  >
+                    <%- include('../icon', { name: 'trash', className: 'w-3.5 h-3.5' }) %>
+                  </button>
+                <% } else { %>
+                  <button
+                    type="button"
+                    class="btn btn-ghost btn-xs btn-square text-success"
+                    title="Restore"
+                    hx-post="/users/<%= u.id %>/restore"
+                    hx-target="#modal-body"
+                    hx-swap="innerHTML"
+                  >
+                    <%- include('../icon', { name: 'restore', className: 'w-3.5 h-3.5' }) %>
+                  </button>
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="rh-cards-mobile">
+    <% if (!users.length) { %>
+      <p class="rh-muted text-sm text-center py-8">No users yet.</p>
+    <% } else { %>
+      <div class="rh-cards-list">
+        <% users.forEach(function(u) {
+          var roleLabel = { admin: 'admin', teamlead: 'tl', buyer: 'buyer', aff: 'aff' }[u.role] || u.role;
+          var searchText = [
+            userStage(u),
+            u.username,
+            u.email,
+            u.role,
+            roleLabel,
+            u.display_company || u.company,
+            u.telegram_chat_id,
+            u.team_name,
+            u.team_lead_stage,
+            u.is_active ? 'active' : 'inactive',
+          ].filter(Boolean).join(' ');
+        %>
+          <%- include('../user-card', { u, isTeamlead, searchText }) %>
+        <% }) %>
+      </div>
+    <% } %>
+  </div>
+  <p class="rh-muted text-sm text-center py-8" data-rh-search-empty hidden>No results found</p>
+</div>

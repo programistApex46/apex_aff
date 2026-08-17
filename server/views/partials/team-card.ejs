@@ -1,0 +1,57 @@
+<article class="rh-list-card <%= t.is_active ? '' : 'rh-list-card--inactive' %>"<% if (typeof searchText !== 'undefined' && searchText) { %> data-rh-search="<%= searchText %>"<% } %>>
+  <header class="rh-list-card-head">
+    <span class="rh-list-card-title"><%= t.name %></span>
+    <% if (t.is_active) { %>
+      <span class="badge badge-sm badge-done rh-list-card-badge">Active</span>
+    <% } else { %>
+      <span class="badge badge-sm badge-ghost rh-list-card-badge">Inactive</span>
+    <% } %>
+  </header>
+
+  <div class="rh-list-card-body">
+    <dl class="rh-list-card-fields">
+      <div><dt>Type</dt><dd><%= t.kind === 'aff' ? 'Aff' : 'Buyer / tl' %></dd></div>
+      <div><dt>Members</dt><dd><%= t.member_count %></dd></div>
+    </dl>
+  </div>
+
+  <footer class="rh-list-card-foot">
+    <button
+      type="button"
+      class="btn btn-ghost btn-sm"
+      title="Edit"
+      hx-get="/teams/<%= t.id %>/edit-modal"
+      hx-target="#modal-body"
+      hx-swap="innerHTML"
+    >
+      <%- include('icon', { name: 'pencil', className: 'w-4 h-4' }) %>
+      Edit
+    </button>
+    <% if (t.is_active) { %>
+      <button
+        type="button"
+        class="btn btn-ghost btn-sm text-error"
+        title="Deactivate"
+        hx-post="/teams/<%= t.id %>/delete"
+        hx-target="#modal-body"
+        hx-swap="innerHTML"
+        hx-confirm="Deactivate this team?"
+      >
+        <%- include('icon', { name: 'trash', className: 'w-4 h-4' }) %>
+        Deactivate
+      </button>
+    <% } else { %>
+      <button
+        type="button"
+        class="btn btn-ghost btn-sm text-success"
+        title="Restore"
+        hx-post="/teams/<%= t.id %>/restore"
+        hx-target="#modal-body"
+        hx-swap="innerHTML"
+      >
+        <%- include('icon', { name: 'restore', className: 'w-4 h-4' }) %>
+        Restore
+      </button>
+    <% } %>
+  </footer>
+</article>

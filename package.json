@@ -1,0 +1,25 @@
+{
+  "name": "jams",
+  "version": "0.1.0",
+  "private": true,
+  "main": "server/app.js",
+  "scripts": {
+    "start": "node server/app.js",
+    "dev": "node --watch server/app.js",
+    "seed:requests": "node scripts/seed-requests.js",
+    "build:motion": "npx --yes esbuild scripts/motion-entry.js --bundle --format=iife --global-name=Motion --minify --outfile=server/public/js/vendor/motion.js"
+  },
+  "dependencies": {
+    "@simplewebauthn/server": "^11.0.0",
+    "bcrypt": "^5.1.1",
+    "better-sqlite3": "^11.7.0",
+    "dotenv": "^16.4.7",
+    "ejs": "^3.1.10",
+    "express": "^4.21.2",
+    "express-session": "^1.18.1",
+    "google-auth-library": "^11.0.2",
+    "motion": "^13.1.0",
+    "multer": "^2.2.0",
+    "node-telegram-bot-api": "^0.66.0"
+  }
+}

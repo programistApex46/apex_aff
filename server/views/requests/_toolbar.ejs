@@ -1,0 +1,27 @@
+<div id="requests-filters-wrap" class="rh-requests-toolbar"<% if (totalCount === 0) { %> hidden<% } %>>
+  <div class="rh-requests-toolbar-row">
+    <div class="rh-requests-toolbar-left">
+      <div class="rh-requests-toolbar-search">
+        <label class="sr-only" for="requests-search">Search</label>
+        <input
+          type="search"
+          id="requests-search"
+          class="input input-bordered w-full rh-requests-search-input"
+          placeholder="Search"
+          autocomplete="off"
+        >
+      </div>
+      <div class="rh-requests-toolbar-filters">
+        <%- include('_filters', { filters, filterOptions, hasActiveFilters, user, sort, clearListUrl }) %>
+      </div>
+      <div class="rh-requests-toolbar-sort" id="rh-desktop-sort-slot">
+        <%- include('_sort-control', { sort, cardSortOptions, perPageOptions, pagination }) %>
+      </div>
+    </div>
+    <% if (user && (user.role === 'buyer' || user.role === 'teamlead')) { %>
+      <div class="rh-requests-toolbar-actions">
+        <%- include('_action-panel', { user }) %>
+      </div>
+    <% } %>
+  </div>
+</div>

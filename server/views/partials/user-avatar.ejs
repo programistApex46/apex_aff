@@ -1,0 +1,6 @@
+<% var cls = typeof avatarClass !== 'undefined' ? avatarClass : ''; %>
+<% if (user && user.avatar_path) { %>
+  <img src="<%= user.avatar_path %>" alt="" class="rh-avatar rh-avatar-img <%= cls %>" width="32" height="32" loading="lazy">
+<% } else { %>
+  <span class="rh-avatar <%= cls %>"><%= userStage(user).charAt(0).toUpperCase() %></span>
+<% } %>

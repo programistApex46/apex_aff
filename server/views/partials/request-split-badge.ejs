@@ -1,0 +1,11 @@
+<%
+  var groupSize = request.split_group_size || 0;
+  var affCount = request.split_aff_count || 0;
+  if (!request.is_split_root || groupSize < 2) return;
+
+  var labelParts = [groupSize + ' parts'];
+  if (affCount >= 2) labelParts.push(affCount + ' affs');
+  var label = 'Split · ' + labelParts.join(' · ');
+  var compact = typeof compact !== 'undefined' && compact;
+%>
+<span class="rh-split-badge<%= compact ? ' rh-split-badge--compact' : '' %>" title="<%= label %>"><% if (compact) { %>×<%= groupSize %><% } else { %><%= label %><% } %></span>

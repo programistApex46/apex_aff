@@ -1,0 +1,25 @@
+<tr>
+  <th class="rh-th rh-th-meta rh-th-sortable<%= isSortActive('id') ? ' rh-th-sorted' : '' %>" data-col-key="id">
+    <a href="<%= sortToggleUrl('id') %>" class="rh-th-link rh-th-sort-link" data-sort-key="id">
+      <span class="rh-th-inner">
+        <span>ID</span>
+        <span class="rh-sort-indicator" aria-hidden="true"><%= isSortActive('id') ? (sort.dir === 'asc' ? '▲' : '▼') : '' %></span>
+      </span>
+    </a>
+  </th>
+  <%- include('../partials/table_th', { label: 'Created', sortKey: 'created_at', sort, sortToggleUrl, sortToggleListUrl, isSortActive, group: 'meta' }) %>
+  <%- include('../partials/table_th', { label: 'Org', sortKey: 'company', sort, sortToggleUrl, sortToggleListUrl, isSortActive, group: 'buyer' }) %>
+  <%- include('../partials/table_th', { label: 'Team', sortKey: 'team', sort, sortToggleUrl, sortToggleListUrl, isSortActive, group: 'buyer' }) %>
+  <%- include('../partials/table_th', { label: 'Stage', sortKey: 'stage', sort, sortToggleUrl, sortToggleListUrl, isSortActive, group: 'buyer' }) %>
+  <%- include('../partials/table_th', { label: 'GEO', sortKey: 'geo', sort, sortToggleUrl, sortToggleListUrl, isSortActive, group: 'buyer' }) %>
+  <%- include('../partials/table_th', { label: 'Lang', sortKey: 'language', sort, sortToggleUrl, sortToggleListUrl, isSortActive, group: 'buyer' }) %>
+  <%- include('../partials/table_th', { label: 'Cap', sortKey: 'quantity', sort, sortToggleUrl, sortToggleListUrl, isSortActive, group: 'buyer' }) %>
+  <%- include('../partials/table_th', { label: 'Funnel', sortKey: 'funnel', sort, sortToggleUrl, sortToggleListUrl, isSortActive, group: 'buyer' }) %>
+  <%- include('../partials/table_th', { label: 'Note', sortKey: 'comment', sort, sortToggleUrl, sortToggleListUrl, isSortActive, group: 'buyer' }) %>
+  <%- include('../partials/table_th', { label: 'Aff', sortKey: 'aff', sort, sortToggleUrl, sortToggleListUrl, isSortActive, group: 'aff' }) %>
+  <%- include('../partials/table_th', { label: 'Partner', sortKey: 'partner', sort, sortToggleUrl, sortToggleListUrl, isSortActive, group: 'aff' }) %>
+  <%- include('../partials/table_th', { label: 'Cap', sortKey: 'aff_cap', sort, sortToggleUrl, sortToggleListUrl, isSortActive, group: 'aff' }) %>
+  <%- include('../partials/table_th', { label: 'Wh', sortKey: 'aff_wh', sort, sortToggleUrl, sortToggleListUrl, isSortActive, group: 'aff' }) %>
+  <%- include('../partials/table_th', { label: 'Price', sortKey: 'aff_price', sort, sortToggleUrl, sortToggleListUrl, isSortActive, group: 'aff' }) %>
+  <th class="rh-th rh-th-right rh-th-actions-col" data-col-key="actions">Actions</th>
+</tr>

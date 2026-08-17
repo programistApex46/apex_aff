@@ -1,0 +1,82 @@
+<% if (error) { %>
+  <span class="text-error text-xs"><%= error %></span>
+<% } else if (user.role === 'aff' && canAffClaimRequest(request, user)) { %>
+  <% if (typeof mobileCard === 'undefined' || !mobileCard) { %>
+    <button
+      type="button"
+      class="btn btn-success btn-sm rh-table-action-take"
+      title="Take request"
+      hx-get="/<%= request.id %>/take-modal"
+      hx-target="#modal-body"
+      hx-swap="innerHTML"
+    >Take</button>
+  <% } else { %>
+    <span class="rh-table-empty"></span>
+  <% } %>
+<% } else if (user.role === 'aff' && canAffManageRequest(request, user)) { %>
+  <% if (typeof mobileCard === 'undefined' || !mobileCard) { %>
+    <div class="rh-table-action-group">
+      <button
+        type="button"
+        class="btn btn-xs btn-square icon-btn rh-table-action-btn rh-table-action-edit"
+        title="Edit"
+        hx-get="/<%= request.id %>/aff-edit-modal"
+        hx-target="#modal-body"
+        hx-swap="innerHTML"
+      >
+        <%- include('icon', { name: 'pencil', className: 'w-4 h-4' }) %>
+      </button>
+      <% if (affReady) { %>
+        <button
+          type="button"
+          class="btn btn-xs btn-square icon-btn rh-table-action-btn rh-table-action-complete"
+          title="Complete"
+          hx-get="/<%= request.id %>/complete-modal"
+          hx-target="#modal-body"
+          hx-swap="innerHTML"
+        >
+          <%- include('icon', { name: 'check', className: 'w-4 h-4' }) %>
+        </button>
+      <% } else { %>
+        <button type="button" class="btn btn-xs btn-square icon-btn rh-table-action-btn rh-table-action-complete" title="Complete" disabled>
+          <%- include('icon', { name: 'check', className: 'w-4 h-4' }) %>
+        </button>
+      <% } %>
+      <button
+        type="button"
+        class="btn btn-xs btn-square icon-btn rh-table-action-btn rh-table-action-release"
+        title="Release piece"
+        hx-get="/<%= request.id %>/release-modal"
+        hx-target="#modal-body"
+        hx-swap="innerHTML"
+      >
+        <%- include('icon', { name: 'user-minus', className: 'w-4 h-4' }) %>
+      </button>
+    </div>
+  <% } else { %>
+    <span class="rh-table-empty"></span>
+  <% } %>
+<% } else if (user.role === 'aff' && canAffReopenRequest(request, user)) { %>
+  <% if (typeof mobileCard === 'undefined' || !mobileCard) { %>
+    <button
+      type="button"
+      class="btn btn-ghost btn-sm rh-request-card-reopen"
+      hx-get="/<%= request.id %>/reopen-modal"
+      hx-target="#modal-body"
+      hx-swap="innerHTML"
+    >Reopen</button>
+  <% } else { %>
+    <span class="rh-table-empty"></span>
+  <% } %>
+<% } else if (user.role === 'buyer' && request.status === 'draft') { %>
+  <button
+    type="button"
+    class="btn btn-ghost btn-xs btn-square icon-btn"
+    title="Continue draft"
+    onclick="openRequestCreate()"
+  >
+    <%- include('icon', { name: 'pencil', className: 'w-3.5 h-3.5' }) %>
+  </button>
+<% } else { %>
+  <span class="rh-table-empty"></span>
+<% } %>

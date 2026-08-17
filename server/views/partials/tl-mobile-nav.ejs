@@ -1,0 +1,54 @@
+<%
+  var nav = tlMobileNav;
+  var useHtmx = typeof isRequestsPage !== 'undefined' && isRequestsPage;
+  var activeFilter = nav.active === 'mine' ? 'mine' : 'all';
+  var navTabs = [
+    {
+      key: 'all',
+      label: 'All requests',
+      icon: 'clipboard',
+      href: '/',
+      listUrl: '/list',
+      count: null,
+    },
+    {
+      key: 'mine',
+      label: 'My requests',
+      icon: 'user',
+      href: '/?view=mine',
+      listUrl: '/list?view=mine',
+      count: nav.myCount,
+    },
+  ];
+%>
+<div
+  class="rh-mobile-aff-tabs rh-mobile-tl-tabs"
+  role="tablist"
+  aria-label="Navigation"
+  data-active="<%= activeFilter %>"
+  data-filter-active="<%= activeFilter %>"
+>
+  <span class="rh-mobile-aff-tab-indicator" aria-hidden="true"></span>
+  <% navTabs.forEach(function(tab) { %>
+    <a
+      href="<%= tab.href %>"
+      class="rh-mobile-aff-tab<%= activeFilter === tab.key ? ' is-active' : '' %>"
+      data-tab-key="<%= tab.key %>"
+      role="tab"
+      aria-selected="<%= activeFilter === tab.key ? 'true' : 'false' %>"
+      aria-label="<%= tab.label %><% if (tab.count !== null && tab.count > 0) { %>, <%= tab.count %><% } %>"
+      <% if (useHtmx) { %>
+      data-list-url="<%= tab.listUrl %>"
+      <% } %>
+      <%- include('app-nav', { url: tab.href }) %>
+    >
+      <span class="rh-mobile-aff-tab-icon-wrap">
+        <%- include('icon', { name: tab.icon, className: 'rh-mobile-aff-tab-icon' }) %>
+        <% if (tab.count !== null && tab.count > 0) { %>
+          <span class="rh-mobile-aff-tab-badge"><%= tab.count > 99 ? '99+' : tab.count %></span>
+        <% } %>
+      </span>
+      <span class="rh-mobile-aff-tab-label"><%= tab.label %></span>
+    </a>
+  <% }) %>
+</div>

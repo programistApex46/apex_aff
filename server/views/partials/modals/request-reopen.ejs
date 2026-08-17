@@ -1,0 +1,30 @@
+<div class="request-reopen-modal rh-modal-page">
+  <div class="rh-modal-page-head">
+    <div class="rh-modal-page-head-text">
+      <h3 class="rh-modal-sheet-title">Reopen request?</h3>
+      <p class="rh-muted text-sm mt-1">Request #<%= request.id %></p>
+    </div>
+    <%- include('modal-close') %>
+  </div>
+
+  <div class="rh-modal-page-body">
+    <% if (error) { %>
+      <div role="alert" class="rh-flash rh-flash--error"><span><%= error %></span></div>
+    <% } %>
+
+    <p class="rh-profile-lead">
+      The request will return to <strong>In progress</strong> status. The completion result will be cleared; aff fields will remain.
+    </p>
+  </div>
+
+  <form
+    method="post"
+    action="/<%= request.id %>/reopen"
+    class="rh-modal-page-foot"
+    hx-post="/<%= request.id %>/reopen"
+    hx-swap="none"
+  >
+    <button type="submit" class="rh-profile-pill">Reopen</button>
+    <button type="button" class="rh-profile-text-action" onclick="if (window.modal) window.modal.close()">Cancel</button>
+  </form>
+</div>

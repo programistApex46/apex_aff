@@ -1,0 +1,4 @@
+<% var _rows = (typeof requests !== 'undefined' && requests) ? requests : ((typeof request !== 'undefined' && request) ? [request] : []); %>
+<% _rows.forEach(function (item) { %>
+  <%- include('request-rows', { request: item, user, error, statusBadgeClass, oob }) %>
+<% }) %>

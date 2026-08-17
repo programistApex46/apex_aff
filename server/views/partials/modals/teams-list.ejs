@@ -1,0 +1,105 @@
+<%- include('../flash', { success, error }) %>
+
+<div class="rh-has-mobile-cards">
+  <div class="rh-table-panel rh-table-desktop">
+    <div class="rh-table-scroll">
+      <table class="rh-data-table">
+        <thead>
+          <tr>
+            <%- include('../table_th', { label: 'Name' }) %>
+            <%- include('../table_th', { label: 'Type' }) %>
+            <%- include('../table_th', { label: 'Members' }) %>
+            <%- include('../table_th', { label: 'Status' }) %>
+            <th class="rh-th rh-th-right"><span>Actions</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (!teams.length) { %>
+            <tr>
+              <td colspan="5" class="text-center rh-muted py-8 text-sm">No teams yet.</td>
+            </tr>
+          <% } %>
+          <% teams.forEach(function(t) {
+            var searchText = [
+              t.name,
+              t.kind,
+              t.kind === 'aff' ? 'aff' : 'buyer tl',
+              String(t.member_count),
+              t.is_active ? 'active' : 'inactive',
+            ].filter(Boolean).join(' ');
+          %>
+            <tr class="<%= t.is_active ? '' : 'opacity-40' %>" data-rh-search="<%= searchText %>">
+              <td class="font-medium"><%= t.name %></td>
+              <td><%= t.kind === 'aff' ? 'Aff' : 'Buyer / tl' %></td>
+              <td><%= t.member_count %></td>
+              <td>
+                <% if (t.is_active) { %>
+                  <span class="rh-status-done">Active</span>
+                <% } else { %>
+                  <span class="rh-muted">Inactive</span>
+                <% } %>
+              </td>
+              <td class="rh-table-actions">
+                <button
+                  type="button"
+                  class="btn btn-ghost btn-xs btn-square"
+                  title="Edit"
+                  hx-get="/teams/<%= t.id %>/edit-modal"
+                  hx-target="#modal-body"
+                  hx-swap="innerHTML"
+                >
+                  <%- include('../icon', { name: 'pencil', className: 'w-3.5 h-3.5' }) %>
+                </button>
+                <% if (t.is_active) { %>
+                  <button
+                    type="button"
+                    class="btn btn-ghost btn-xs btn-square text-error"
+                    title="Deactivate"
+                    hx-post="/teams/<%= t.id %>/delete"
+                    hx-target="#modal-body"
+                    hx-swap="innerHTML"
+                    hx-confirm="Deactivate this team?"
+                  >
+                    <%- include('../icon', { name: 'trash', className: 'w-3.5 h-3.5' }) %>
+                  </button>
+                <% } else { %>
+                  <button
+                    type="button"
+                    class="btn btn-ghost btn-xs btn-square text-success"
+                    title="Restore"
+                    hx-post="/teams/<%= t.id %>/restore"
+                    hx-target="#modal-body"
+                    hx-swap="innerHTML"
+                  >
+                    <%- include('../icon', { name: 'restore', className: 'w-3.5 h-3.5' }) %>
+                  </button>
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="rh-cards-mobile">
+    <% if (!teams.length) { %>
+      <p class="rh-muted text-sm text-center py-8">No teams yet.</p>
+    <% } else { %>
+      <div class="rh-cards-list">
+        <% teams.forEach(function(t) {
+          var searchText = [
+            t.name,
+            t.kind,
+            t.kind === 'aff' ? 'aff' : 'buyer tl',
+            String(t.member_count),
+            t.is_active ? 'active' : 'inactive',
+          ].filter(Boolean).join(' ');
+        %>
+          <%- include('../team-card', { t, searchText }) %>
+        <% }) %>
+      </div>
+    <% } %>
+  </div>
+  <p class="rh-muted text-sm text-center py-8" data-rh-search-empty hidden>No results found</p>
+</div>

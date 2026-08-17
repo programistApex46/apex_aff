@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="rh-light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> · Request Hub</title>
+  <script>
+    (function () {
+      var t = localStorage.getItem('rh-theme') || 'light';
+      document.documentElement.setAttribute('data-theme', t === 'dark' ? 'rh-dark' : 'rh-light');
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (!meta) {
+        meta = document.createElement('meta');
+        meta.name = 'theme-color';
+        document.head.appendChild(meta);
+      }
+      meta.content = t === 'dark' ? '#0e0f12' : '#e8eaef';
+    })();
+  </script>
+  <link rel="manifest" href="/site.webmanifest">
+  <link rel="apple-touch-icon" href="/logo.png">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#e8eaef">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css" rel="stylesheet">
+  <link href="/css/theme.css" rel="stylesheet">
+  <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+  <script src="https://unpkg.com/htmx-ext-sse@2.2.4/dist/sse.js"></script>
+  <script src="/js/vendor/motion.js"></script>
+  <script src="/js/rh-motion.js?v=5"></script>
+</head>
+<body class="min-h-screen flex flex-col<%= user && user.role === 'admin' ? ' rh-admin-user' : '' %><%= user && user.role === 'aff' ? ' rh-aff-user' : '' %><%= user && user.role === 'buyer' ? ' rh-buyer-user' : '' %><%= user && user.role === 'teamlead' ? ' rh-tl-user' : '' %><%= typeof bodyClass !== 'undefined' && bodyClass ? ' ' + bodyClass : '' %>">
+<% if (typeof bare === 'undefined' || !bare) { %>
+  <header class="rh-topbar<%= user && user.role === 'aff' ? ' rh-topbar-aff' : '' %><%= user && user.role === 'buyer' ? ' rh-topbar-buyer' : '' %><%= user && user.role === 'teamlead' ? ' rh-topbar-tl' : '' %>">
+    <div class="rh-topbar-left">
+      <a href="/" class="btn btn-ghost btn-sm btn-square" title="Home" <%- include('app-nav', { url: '/' }) %>>
+        <%- include('icon', { name: 'home', className: 'w-5 h-5' }) %>
+      </a>
+      <span class="rh-topbar-brand flex items-center gap-2 shrink-0">
+        <img src="/logo.png" alt="Request Hub" class="h-8 w-auto">
+      </span>
+      <div class="rh-page-badge hidden sm:flex">
+        <%- include('icon', { name: typeof pageIcon !== 'undefined' ? pageIcon : 'clipboard', className: 'w-4 h-4' }) %>
+        <span><%= typeof pageTitle !== 'undefined' ? pageTitle : title %></span>
+      </div>
+    </div>
+  <% if (user && user.role === 'aff' && typeof affMobileNav !== 'undefined') { %>
+      <div class="rh-mobile-aff-dock">
+        <nav class="rh-mobile-aff-nav rh-glass-surface" id="rh-mobile-aff-nav" aria-label="Request filters">
+          <%- include('aff-mobile-nav', { affMobileNav, isRequestsPage, isProfilePage: typeof isProfilePage !== 'undefined' ? isProfilePage : false }) %>
+        </nav>
+      </div>
+    <% } %>
+    <% if (user && user.role === 'buyer') { %>
+      <div class="rh-mobile-buyer-dock">
+        <nav class="rh-mobile-buyer-nav rh-glass-surface" aria-label="Buyer navigation">
+          <%- include('buyer-mobile-nav', { user, isRequestsPage: typeof isRequestsPage !== 'undefined' ? isRequestsPage : false, isProfilePage: typeof isProfilePage !== 'undefined' ? isProfilePage : false }) %>
+        </nav>
+      </div>
+    <% } %>
+    <% if (user && user.role === 'teamlead' && typeof tlMobileNav !== 'undefined') { %>
+      <div class="rh-mobile-tl-dock">
+        <nav class="rh-mobile-tl-nav rh-glass-surface" id="rh-mobile-tl-nav" aria-label="Navigation">
+          <%- include('tl-mobile-nav', { user, tlMobileNav, isRequestsPage: typeof isRequestsPage !== 'undefined' ? isRequestsPage : false, isProfilePage: typeof isProfilePage !== 'undefined' ? isProfilePage : false }) %>
+        </nav>
+        <nav class="rh-mobile-tl-create rh-glass-surface" aria-label="New request">
+          <button
+            type="button"
+            class="rh-mobile-aff-tab rh-mobile-aff-tab--icon-only rh-mobile-tl-create-tab"
+            aria-label="New request"
+            onclick="openRequestCreate()"
+          >
+            <span class="rh-mobile-aff-tab-icon-wrap">
+              <%- include('icon', { name: 'plus', className: 'rh-mobile-aff-tab-icon' }) %>
+            </span>
+          </button>
+        </nav>
+      </div>
+    <% } %>
+    <% if (user) { %>
+    <div class="rh-topbar-right<%= user.role === 'aff' && typeof affMobileNav !== 'undefined' ? ' rh-topbar-right--aff-desktop' : '' %><%= user.role === 'buyer' ? ' rh-topbar-right--buyer-desktop' : '' %><%= user.role === 'teamlead' && typeof tlMobileNav !== 'undefined' ? ' rh-topbar-right--tl-desktop' : '' %>">
+        <div class="rh-account-menu">
+          <button type="button" class="rh-account-trigger rh-account-trigger--aff-desktop" id="rh-account-trigger" aria-expanded="false" aria-controls="rh-account-dropdown" aria-haspopup="true">
+            <%- include('user-avatar', { user }) %>
+            <span class="hidden sm:inline text-sm font-medium"><%= userStage(user) %></span>
+            <%- include('icon', { name: 'chevron-down', className: 'w-4 h-4 rh-account-chevron' }) %>
+          </button>
+        </div>
+    </div>
+    <% } %>
+  </header>
+  <% if (user) { %>
+    <div id="rh-account-backdrop" class="rh-account-backdrop" hidden></div>
+    <button
+      type="button"
+      class="rh-mobile-account-btn rh-account-trigger rh-account-trigger--mobile"
+      id="rh-mobile-account-trigger"
+      aria-expanded="false"
+      aria-controls="rh-account-dropdown"
+      aria-haspopup="true"
+      aria-label="Profile"
+    >
+      <%- include('user-avatar', { user, avatarClass: 'rh-mobile-account-avatar' }) %>
+    </button>
+    <div id="rh-account-dropdown" class="rh-account-dropdown rh-glass-surface" hidden>
+      <div class="rh-account-dropdown-frost" data-rh-motion-backdrop aria-hidden="true"></div>
+      <div class="rh-account-dropdown-sheet" data-rh-motion-panel>
+      <div class="rh-account-dropdown-chrome">
+        <span class="rh-account-dropdown-title">Profile</span>
+        <button type="button" class="rh-account-dropdown-close" onclick="closeAccountDropdown()" title="Close" aria-label="Close">
+          <%- include('icon', { name: 'x', className: 'w-5 h-5' }) %>
+        </button>
+      </div>
+      <div class="rh-account-dropdown-panel">
+      <div class="rh-account-dropdown-head">
+        <a
+          href="/profile"
+          class="rh-account-dropdown-user"
+          onclick="closeAccountDropdown()"
+          aria-label="Profile settings"
+          <%- include('app-nav', { url: '/profile' }) %>
+        >
+          <%- include('user-avatar', { user, avatarClass: 'rh-account-dropdown-avatar' }) %>
+          <div class="rh-account-dropdown-head-text">
+            <span class="rh-account-dropdown-name"><%= userStage(user) %></span>
+            <span class="rh-account-dropdown-role"><%= ({ admin: 'Admin', teamlead: 'Team Lead', buyer: 'Buyer', aff: 'Aff' })[user.role] || user.role %></span>
+          </div>
+          <span class="rh-account-dropdown-item-icon rh-account-dropdown-user-edit" aria-hidden="true">
+            <%- include('icon', { name: 'pencil', className: 'w-4 h-4' }) %>
+          </span>
+        </a>
+      </div>
+      <nav class="rh-account-dropdown-nav">
+      <a
+        href="/"
+        class="rh-account-dropdown-item"
+        onclick="closeAccountDropdown()"
+        <%- include('app-nav', { url: '/' }) %>
+      >
+        <span class="rh-account-dropdown-item-icon" aria-hidden="true">
+          <%- include('icon', { name: 'home', className: 'w-4 h-4' }) %>
+        </span>
+        <span class="rh-account-dropdown-item-label">Home</span>
+      </a>
+      <% if (user.role === 'admin' || user.role === 'teamlead') { %>
+        <button
+          type="button"
+          class="rh-account-dropdown-item"
+          hx-get="/users/modal"
+          hx-target="#modal-body"
+          hx-swap="innerHTML"
+          onclick="closeAccountDropdown(); if (modal) modal.showModal();"
+        >
+          <span class="rh-account-dropdown-item-icon" aria-hidden="true">
+            <%- include('icon', { name: 'users', className: 'w-4 h-4' }) %>
+          </span>
+          <span class="rh-account-dropdown-item-label">Users</span>
+        </button>
+      <% } %>
+      <% if (user.role === 'admin') { %>
+        <button
+          type="button"
+          class="rh-account-dropdown-item"
+          hx-get="/teams/modal"
+          hx-target="#modal-body"
+          hx-swap="innerHTML"
+          onclick="closeAccountDropdown(); if (modal) modal.showModal();"
+        >
+          <span class="rh-account-dropdown-item-icon" aria-hidden="true">
+            <%- include('icon', { name: 'layers', className: 'w-4 h-4' }) %>
+          </span>
+          <span class="rh-account-dropdown-item-label">Teams</span>
+        </button>
+      <% } %>
+      <a
+        href="/profile"
+        class="rh-account-dropdown-item"
+        onclick="closeAccountDropdown()"
+        <%- include('app-nav', { url: '/profile' }) %>
+      >
+        <span class="rh-account-dropdown-item-icon" aria-hidden="true">
+          <%- include('icon', { name: 'user', className: 'w-4 h-4' }) %>
+        </span>
+        <span class="rh-account-dropdown-item-label">Profile</span>
+      </a>
+      <% if (user.role === 'admin' || user.role === 'teamlead') { %>
+        <button
+          type="button"
+          class="rh-account-dropdown-item"
+          hx-get="/users/new-modal"
+          hx-target="#modal-body"
+          hx-swap="innerHTML"
+          onclick="closeAccountDropdown(); if (modal) modal.showModal();"
+        >
+          <span class="rh-account-dropdown-item-icon" aria-hidden="true">
+            <%- include('icon', { name: 'user-plus', className: 'w-4 h-4' }) %>
+          </span>
+          <span class="rh-account-dropdown-item-label">Create user</span>
+        </button>
+      <% } %>
+      <% if (user.role === 'admin') { %>
+        <button
+          type="button"
+          class="rh-account-dropdown-item"
+          hx-get="/teams/new-modal"
+          hx-target="#modal-body"
+          hx-swap="innerHTML"
+          onclick="closeAccountDropdown(); if (modal) modal.showModal();"
+        >
+          <span class="rh-account-dropdown-item-icon" aria-hidden="true">
+            <%- include('icon', { name: 'plus', className: 'w-4 h-4' }) %>
+          </span>
+          <span class="rh-account-dropdown-item-label">Create team</span>
+        </button>
+      <% } %>
+      <div class="rh-account-dropdown-divider" role="separator" aria-hidden="true"></div>
+      <button
+        type="button"
+        class="rh-account-dropdown-item theme-toggle"
+        onclick="toggleTheme()"
+      >
+        <span class="rh-account-dropdown-item-icon" aria-hidden="true">
+          <%- include('icon', { name: 'sun', className: 'w-4 h-4 theme-icon-sun' }) %>
+          <%- include('icon', { name: 'moon', className: 'w-4 h-4 theme-icon-moon' }) %>
+        </span>
+        <span class="rh-account-dropdown-item-label rh-theme-toggle-label">Dark mode</span>
+      </button>
+      <form method="post" action="/logout" class="rh-account-dropdown-logout-form" hx-boost="false">
+        <button type="submit" class="rh-account-dropdown-item rh-account-dropdown-item--danger">
+          <span class="rh-account-dropdown-item-icon" aria-hidden="true">
+            <%- include('icon', { name: 'logout', className: 'w-4 h-4' }) %>
+          </span>
+          <span class="rh-account-dropdown-item-label">Log out</span>
+        </button>
+      </form>
+      </nav>
+      <div class="rh-account-dropdown-foot">
+        <button type="button" class="rh-account-dropdown-done" onclick="closeAccountDropdown()">Done</button>
+      </div>
+      </div>
+      </div>
+    </div>
+  <% } %>
+  <main id="rh-page" class="rh-main">
+<% } %>

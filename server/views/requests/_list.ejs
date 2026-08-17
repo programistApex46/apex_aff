@@ -1,0 +1,35 @@
+<div id="requests-list">
+  <div class="rh-table-panel rh-table-desktop" id="requests-table-panel"<% if (totalCount === 0) { %> hidden<% } %>>
+    <div id="requests-filtered-empty" class="rh-filtered-empty"<% if (typeof filteredCount === 'undefined' || filteredCount > 0 || !hasActiveFilters) { %> hidden<% } %>>
+      <p class="rh-secondary mb-1">No requests match your filters</p>
+      <a
+        href="/"
+        class="text-sm rh-clear-filters-link"
+        id="requests-clear-filters-empty"
+      >Clear filters</a>
+    </div>
+
+    <div class="rh-table-scroll"<% if (typeof filteredCount !== 'undefined' && filteredCount === 0 && hasActiveFilters) { %> hidden<% } %>>
+      <table class="rh-data-table rh-requests-table" id="requests-table">
+        <%- include('_thead', { sort, sortToggleUrl, sortToggleListUrl, isSortActive }) %>
+        <tbody
+          id="requests-body"
+          data-rh-per-page="<%= pagination.perPage %>"
+          data-rh-parent-count="<%= requests.filter(function (request) { return !request.is_subtask; }).length %>"
+        >
+          <% requests.forEach(function(request) { %>
+            <%- include('../partials/request-row', { request, user, error: null, statusBadgeClass }) %>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <% if (typeof pagination !== 'undefined' && pagination.totalPages > 1) { %>
+    <div class="rh-pagination-desktop">
+      <%- include('_pagination', { pagination, paginationUrl, paginationListUrl }) %>
+    </div>
+  <% } %>
+
+  <%- include('_cards-mobile', { requests, user, totalCount, filteredCount, hasActiveFilters, pagination, paginationUrl, paginationListUrl, filters, sort, sortToggleUrl, sortToggleListUrl, isSortActive, clearListUrl }) %>
+</div>

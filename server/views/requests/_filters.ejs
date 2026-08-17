@@ -1,0 +1,86 @@
+<form
+  method="get"
+  action="/"
+  class="rh-filters"
+  id="requests-filters"
+  onsubmit="return false"
+>
+  <div class="rh-filter-field">
+    <label class="label-text" for="filter-status">Status</label>
+    <select id="filter-status" name="status" class="select select-bordered select-sm w-full">
+      <option value="">All statuses</option>
+      <option value="open" <%= filters.status === 'open' ? 'selected' : '' %>>Open</option>
+      <option value="draft" <%= filters.status === 'draft' ? 'selected' : '' %>>Draft</option>
+      <option value="new" <%= filters.status === 'new' ? 'selected' : '' %>>Sent</option>
+      <option value="in_progress" <%= filters.status === 'in_progress' ? 'selected' : '' %>>In progress</option>
+      <option value="approved" <%= filters.status === 'approved' ? 'selected' : '' %>>Approved</option>
+      <option value="rejected" <%= filters.status === 'rejected' ? 'selected' : '' %>>Rejected</option>
+    </select>
+  </div>
+
+  <div class="rh-filter-field rh-filter-field--geo">
+    <label class="label-text" for="filter-geo">GEO</label>
+    <div class="rh-filter-geo-control">
+      <div class="rh-filter-geo-display" id="filter-geo-display" aria-hidden="true">
+        <% if (!filters.geo) { %>
+          <span class="rh-filter-geo-placeholder">All GEOs</span>
+        <% } else { %>
+          <%- include('../partials/geo-table-cell', { geo: filters.geo }) %>
+        <% } %>
+      </div>
+      <select
+        id="filter-geo"
+        name="geo"
+        class="select select-bordered select-sm w-full rh-filter-geo-select"
+      >
+        <option value="">All GEOs</option>
+        <% filterOptions.geos.forEach(function(geo) {
+          var geoCode = geo.trim().toUpperCase();
+          var geoName = geoTableName(geo);
+          var geoFlag = geoFlagUrl(geo) || '';
+        %>
+          <option
+            value="<%= geo %>"
+            data-name="<%= geoName || '' %>"
+            data-code="<%= geoCode %>"
+            data-flag-url="<%= geoFlag %>"
+            <%= filters.geo === geo ? 'selected' : '' %>
+          ><%= geoTableLabel(geo) %></option>
+        <% }) %>
+      </select>
+    </div>
+  </div>
+
+  <% if (user.role !== 'buyer' && filterOptions.buyers.length > 0) { %>
+    <div class="rh-filter-field">
+      <label class="label-text" for="filter-buyer">Buyer</label>
+      <select id="filter-buyer" name="buyer_id" class="select select-bordered select-sm w-full">
+        <option value="">All buyers</option>
+        <% filterOptions.buyers.forEach(function(buyer) { %>
+          <option value="<%= buyer.id %>" <%= filters.buyer_id === String(buyer.id) ? 'selected' : '' %>><%= buyer.stage %></option>
+        <% }) %>
+      </select>
+    </div>
+  <% } %>
+
+  <% if (user.role !== 'buyer' && user.role !== 'aff' && (filterOptions.affs.length > 0 || filters.assigned === 'none')) { %>
+    <div class="rh-filter-field">
+      <label class="label-text" for="filter-assigned">Assigned</label>
+      <select id="filter-assigned" name="assigned" class="select select-bordered select-sm w-full">
+        <option value="">Anyone</option>
+        <option value="none" <%= filters.assigned === 'none' ? 'selected' : '' %>>Unassigned</option>
+        <% filterOptions.affs.forEach(function(aff) { %>
+          <option value="<%= aff.id %>" <%= filters.assigned === String(aff.id) ? 'selected' : '' %>><%= aff.stage %></option>
+        <% }) %>
+      </select>
+    </div>
+  <% } %>
+
+  <div class="rh-filter-actions" id="requests-clear-filters-wrap"<% if (!hasActiveFilters) { %> hidden<% } %>>
+    <a
+      href="/"
+      class="rh-clear-filters-link rh-clear-filters-btn"
+      id="requests-clear-filters"
+    >Clear filters</a>
+  </div>
+</form>

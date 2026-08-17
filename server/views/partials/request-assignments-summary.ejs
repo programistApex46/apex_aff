@@ -1,0 +1,20 @@
+<%
+  var assignments = request.assignments || [];
+  var active = assignments.filter(function (a) { return a.status !== 'cancelled'; });
+%>
+<% if (active.length) { %>
+  <div class="rh-request-assignments">
+    <% active.forEach(function (assignment, index) { %>
+      <% if (index > 0) { %><span class="rh-request-assignments-sep">·</span><% } %>
+      <span class="rh-request-assignment-item">
+        <%- include('aff-user-tag', { stage: assignment.aff_stage, avatarPath: assignment.aff_avatar_path }) %>
+        <span class="rh-request-assignment-cap"><%= assignment.cap_taken %></span>
+        <% if (assignment.status === 'done') { %>
+          <span class="badge badge-xs <%= assignment.result_status === 'rejected' ? 'badge-rejected' : 'badge-done' %>"><%= assignment.result_status %></span>
+        <% } %>
+      </span>
+    <% }) %>
+  </div>
+<% } else { %>
+  <span class="rh-muted">—</span>
+<% } %>

@@ -1,0 +1,78 @@
+<%- include('partials/layout', { bare: true, title: 'Sign in', bodyClass: 'rh-login-page' }) %>
+  <div id="login-vanta-bg" aria-hidden="true"></div>
+  <div class="rh-login-toolbar">
+    <button type="button" class="btn btn-ghost btn-sm btn-square theme-toggle rh-card" onclick="toggleTheme()" title="Toggle theme">
+      <%- include('partials/icon', { name: 'sun', className: 'w-5 h-5 theme-icon-sun' }) %>
+      <%- include('partials/icon', { name: 'moon', className: 'w-5 h-5 theme-icon-moon' }) %>
+    </button>
+  </div>
+  <div class="rh-login-wrap">
+    <div class="rh-card rh-form-card rh-login-card w-full max-w-sm">
+      <div class="flex flex-col items-center mb-6">
+        <img src="/logo.png" alt="Request Hub" class="h-12 mb-3">
+        <h1 class="text-lg font-semibold">Sign in to Request Hub</h1>
+        <p class="rh-muted text-sm mt-1">Enter your credentials to continue</p>
+      </div>
+
+      <% if (error) { %>
+        <div role="alert" class="rh-flash rh-flash--error"><span><%= error %></span></div>
+      <% } %>
+
+      <form method="post" action="/login" class="flex flex-col gap-3">
+        <label class="form-control w-full">
+          <span class="label-text mb-1">Stage</span>
+          <input type="text" name="username" class="input input-bordered w-full" autocomplete="username" required />
+        </label>
+        <label class="form-control w-full">
+          <span class="label-text mb-1">Password</span>
+          <input type="password" name="password" class="input input-bordered w-full" autocomplete="current-password" required />
+        </label>
+        <button type="submit" class="btn btn-primary mt-2 w-full">Sign in</button>
+      </form>
+
+      <div class="rh-login-divider" role="separator"><span>or</span></div>
+
+      <% if (googleClientId) { %>
+      <script>
+        function handleGoogleCredential(response) {
+          fetch('/auth/google', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ credential: response.credential }),
+          })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+              if (data.success) window.location.href = '/app';
+              else alert(data.error);
+            })
+            .catch(function () {
+              alert('Could not verify Google sign-in, please try again');
+            });
+        }
+      </script>
+      <script src="https://accounts.google.com/gsi/client" async defer></script>
+      <div class="rh-google-signin">
+        <div
+          id="g_id_onload"
+          data-client_id="<%= googleClientId %>"
+          data-callback="handleGoogleCredential"
+        ></div>
+        <div id="google-signin-button" class="rh-google-signin-button"></div>
+      </div>
+      <script src="/js/login-google.js"></script>
+      <% } %>
+
+      <div id="webauthn-login-error" class="rh-flash rh-flash--error mt-3" role="alert" hidden></div>
+
+      <button type="button" class="btn btn-outline w-full mt-1" id="webauthn-login-btn">
+        <span class="webauthn-login-label">Sign in with Face ID / Touch ID</span>
+        <span class="webauthn-login-busy" hidden>Confirm on your device…</span>
+      </button>
+    </div>
+  </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vanta@0.5.24/dist/vanta.trunk.min.js"></script>
+  <script src="/js/login-vanta.js"></script>
+  <script type="module" src="/js/webauthn-login.js"></script>
+<%- include('partials/foot', { bare: true }) %>

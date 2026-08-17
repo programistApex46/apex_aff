@@ -1,0 +1,20 @@
+<div class="rh-modal-search">
+  <label class="sr-only" for="<%= id %>"><%= placeholder %></label>
+  <div class="rh-modal-search-field">
+    <span class="rh-modal-search-icon" aria-hidden="true">
+      <%- include('../icon', { name: 'search', className: 'w-4 h-4' }) %>
+    </span>
+    <input
+      type="search"
+      id="<%= id %>"
+      class="rh-modal-search-input"
+      data-rh-modal-search
+      placeholder="<%= placeholder %>"
+      autocomplete="off"
+      enterkeyhint="search"
+    >
+    <button type="button" class="rh-modal-search-clear" data-rh-modal-search-clear hidden aria-label="Clear">
+      <%- include('../icon', { name: 'x', className: 'w-4 h-4' }) %>
+    </button>
+  </div>
+</div>

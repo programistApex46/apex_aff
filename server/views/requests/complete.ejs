@@ -1,0 +1,117 @@
+<%- include('../partials/layout', { pageTitle: 'Submit result', pageIcon: 'check' }) %>
+
+    <div class="mb-6">
+      <h1 class="rh-page-title mb-2">Submit result</h1>
+      <p class="rh-subtitle">Request #<%= request.id %> · Buyer GEO <%= request.geo %> · Cap <%= request.quantity %></p>
+    </div>
+
+    <div id="complete-form-error" role="alert" class="rh-flash rh-flash--error max-w-md hidden"><span></span></div>
+    <% if (error) { %>
+      <div role="alert" class="rh-flash rh-flash--error max-w-md"><span><%= error %></span></div>
+    <% } %>
+
+    <form id="complete-form" method="post" action="/<%= request.id %>/complete" class="rh-card rh-form-card flex flex-col gap-4" novalidate>
+      <label class="form-control w-full">
+        <span class="label-text mb-1">Aff</span>
+        <input type="text" class="input input-bordered w-full" value="<%= userStage(user) %>" disabled />
+      </label>
+      <label class="form-control w-full">
+        <span class="label-text mb-1">Status</span>
+        <select id="result_status" name="result_status" class="select select-bordered w-full" required onchange="toggleCompleteFields()">
+          <option value="">Select…</option>
+          <option value="approved" <%= form.result_status === 'approved' ? 'selected' : '' %>>Approved</option>
+          <option value="rejected" <%= form.result_status === 'rejected' ? 'selected' : '' %>>Rejected</option>
+        </select>
+      </label>
+      <div id="complete-detail-fields" class="flex flex-col gap-4">
+        <label class="form-control w-full">
+          <span class="label-text mb-1">GEO</span>
+          <input type="text" name="aff_geo" class="input input-bordered w-full" value="<%= form.aff_geo || request.geo %>" />
+        </label>
+        <label class="form-control w-full">
+          <span class="label-text mb-1">Cap</span>
+          <input type="number" name="result_quantity" class="input input-bordered w-full" min="0" step="1" value="<%= form.result_quantity ?? '' %>" />
+        </label>
+        <label class="form-control w-full">
+          <span class="label-text mb-1">Wh</span>
+          <input type="text" name="aff_wh" class="input input-bordered w-full" value="<%= form.aff_wh || '' %>" placeholder="e.g. 9-18" />
+        </label>
+        <label class="form-control w-full">
+          <span class="label-text mb-1">Price</span>
+          <input type="text" name="aff_price" class="input input-bordered w-full" value="<%= form.aff_price || '' %>" placeholder="e.g. $12" />
+        </label>
+        <label class="form-control w-full">
+          <span class="label-text mb-1">Details <span class="rh-muted">(optional)</span></span>
+          <textarea name="result_details" class="textarea textarea-bordered w-full" rows="4"><%= form.result_details || '' %></textarea>
+        </label>
+      </div>
+      <div class="flex gap-2 mt-2">
+        <button type="submit" class="btn btn-primary flex-1">Save</button>
+        <a href="/" class="btn btn-ghost btn-square" title="Cancel">
+          <%- include('../partials/icon', { name: 'x', className: 'w-5 h-5' }) %>
+        </a>
+      </div>
+    </form>
+
+    <script>
+      function showCompleteError(message) {
+        var box = document.getElementById('complete-form-error');
+        if (!box) return;
+        var span = box.querySelector('span');
+        if (span) span.textContent = message;
+        box.classList.toggle('hidden', !message);
+      }
+
+      function toggleCompleteFields() {
+        var status = document.getElementById('result_status');
+        var rejected = status && status.value === 'rejected';
+        var wrap = document.getElementById('complete-detail-fields');
+        if (wrap) wrap.classList.toggle('opacity-50', rejected);
+        showCompleteError('');
+      }
+
+      function validateCompleteForm() {
+        var statusEl = document.getElementById('result_status');
+        var status = statusEl ? statusEl.value : '';
+        if (!status) {
+          showCompleteError('Select a status');
+          return false;
+        }
+        if (status === 'rejected') return true;
+
+        var geo = document.querySelector('[name="aff_geo"]');
+        var qty = document.querySelector('[name="result_quantity"]');
+        var wh = document.querySelector('[name="aff_wh"]');
+        var price = document.querySelector('[name="aff_price"]');
+
+        if (!geo || !geo.value.trim()) {
+          showCompleteError('GEO is required');
+          return false;
+        }
+        var cap = Number(qty && qty.value);
+        if (!Number.isInteger(cap) || cap < 0) {
+          showCompleteError('Cap must be a whole number from 0');
+          return false;
+        }
+        if (!wh || !wh.value.trim()) {
+          showCompleteError('Wh is required');
+          return false;
+        }
+        if (!price || !price.value.trim()) {
+          showCompleteError('Price is required');
+          return false;
+        }
+        return true;
+      }
+
+      toggleCompleteFields();
+
+      var completeForm = document.getElementById('complete-form');
+      if (completeForm) {
+        completeForm.addEventListener('submit', function (e) {
+          if (!validateCompleteForm()) e.preventDefault();
+        });
+      }
+    </script>
+
+<%- include('../partials/foot') %>

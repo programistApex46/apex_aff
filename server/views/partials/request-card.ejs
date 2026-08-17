@@ -1,0 +1,245 @@
+<%
+  var _display = (typeof getCardDisplayStatus === 'function')
+    ? { getCardDisplayStatus: getCardDisplayStatus, formatRequestDate: formatRequestDate, showCompletedDate: showCompletedDate, geoFlagUrl: geoFlagUrl }
+    : require('./server/lib/display');
+  var _aff = (typeof canAffManageRequest === 'function')
+    ? { canAffManageRequest: canAffManageRequest, canAffReopenRequest: canAffReopenRequest, canAffClaimRequest: canAffClaimRequest, isAffFieldsComplete: isAffFieldsComplete }
+    : require('./server/lib/request-aff');
+  var cardStatus = _display.getCardDisplayStatus(request);
+  var buyerGeo = request.status === 'draft' && !request.geo ? '—' : (request.geo || '—');
+  var buyerCap = request.status === 'draft' && !request.quantity ? '—' : request.quantity;
+  var isSubtask = !!request.is_subtask;
+  var isSplitMember = !!request.is_split_member;
+  var showBuyerMeta = user.role === 'teamlead' || user.role === 'admin' || user.role === 'aff';
+  var cardClasses = [
+    'rh-request-card',
+    'rh-request-card--' + cardStatus.key,
+  ];
+  if (isSubtask) cardClasses.push('rh-request-card--subtask');
+  if (isSplitMember) cardClasses.push('rh-request-card--split-member');
+  if (request.is_split_root) cardClasses.push('rh-request-card--split-root');
+  if (request.split_group_first) cardClasses.push('rh-request-card--split-first');
+  if (request.split_group_middle) cardClasses.push('rh-request-card--split-middle');
+  if (request.split_group_last) cardClasses.push('rh-request-card--split-last');
+  var _formatTeamLabel = typeof formatTeamLabel === 'function'
+    ? formatTeamLabel
+    : function (name) { return name || ''; };
+  var isMyInProgress = _aff.canAffManageRequest(request, user);
+  var isMyDone = _aff.canAffReopenRequest(request, user);
+  var canTake = _aff.canAffClaimRequest(request, user);
+  var affReady = _aff.isAffFieldsComplete(request);
+%>
+<article
+  id="request-card-<%= request.id %>"
+  class="<%= cardClasses.join(' ') %>"
+  style="--rh-split-depth: <%= request.nest_depth || 0 %>"
+  data-id="<%= request.id %>"
+  data-status="<%= request.status %>"
+  data-stage="<%= request.buyer_stage %>"
+  data-geo="<%= request.geo %>"
+  data-language="<%= request.language || '' %>"
+  data-quantity="<%= request.quantity %>"
+  data-remaining-cap="<%= request.available_leads ?? request.quantity %>"
+  data-split-from="<%= request.split_from_id || '' %>"
+  data-split-root="<%= request.split_root_id || request.split_from_id || '' %>"
+  data-is-subtask="<%= isSubtask ? '1' : '0' %>"
+  data-is-split-member="<%= isSplitMember ? '1' : '0' %>"
+  data-assignment-aff-ids="<%= request.taken_by_id || '' %>"
+  data-aggregate-result="<%= request.aggregate_result_status || request.result_status || '' %>"
+  data-funnel="<%= request.funnel || '' %>"
+  data-comment="<%= request.comment || '' %>"
+  data-buyer-id="<%= request.buyer_id %>"
+  data-aff="<%= request.taken_by_stage || '' %>"
+  data-partner="<%= request.partner || '' %>"
+  data-assigned-id="<%= request.taken_by_id || '' %>"
+  data-aff-geo="<%= request.aff_geo || '' %>"
+  data-aff-language="<%= request.aff_language || '' %>"
+  data-aff-cap="<%= request.result_quantity ?? '' %>"
+  data-aff-wh="<%= request.aff_wh || '' %>"
+  data-aff-price="<%= request.aff_price || '' %>"
+  data-aff-status="<%= request.result_status || '' %>"
+  data-created="<%= request.created_at %>"
+<% if (typeof oob !== 'undefined' && oob) { %> hx-swap-oob="<%= isSubtask && request.split_from_id ? 'afterend:#request-card-' + request.split_from_id : 'true' %>"<% } %>>
+  <header class="rh-request-card-head">
+    <% if (isSplitMember) { %>
+      <span class="rh-split-rail rh-split-rail--card<%= isSubtask ? ' rh-split-rail--branch' : ' rh-split-rail--root' %><% if (request.split_group_last) { %> rh-split-rail--last<% } %>" aria-hidden="true"></span>
+    <% } %>
+    <span class="rh-request-card-id">
+      #<%= request.id %>
+      <% if (isSubtask && request.split_from_id) { %>
+        <span class="rh-request-card-split-from">
+          <%- include('request-split-link', { request, compact: false }) %>
+        </span>
+      <% } %>
+    </span>
+    <span class="rh-request-card-head-meta">
+      <% if (request.is_split_root) { %>
+        <%- include('request-split-badge', { request }) %>
+      <% } else if (isSubtask && request.split_group_size > 1) { %>
+        <span class="rh-split-part-label" title="Part <%= (request.split_group_index || 0) + 1 %> of <%= request.split_group_size %>">
+          Part <%= (request.split_group_index || 0) + 1 %>/<%= request.split_group_size %>
+        </span>
+      <% } %>
+      <span class="badge badge-sm <%= cardStatus.badge %> rh-request-card-badge"><%= cardStatus.label %></span>
+    </span>
+  </header>
+
+  <div class="rh-request-card-body">
+    <section class="rh-request-card-section rh-request-card-section--buyer">
+      <div class="rh-request-card-fields">
+        <% if (showBuyerMeta) { %>
+          <div class="rh-request-card-row rh-request-card-row--meta">
+            <span class="rh-request-card-kv">
+              <span class="rh-request-card-inline-label">Org</span>
+              <span class="rh-request-card-kv-value"><%= request.buyer_company || '—' %></span>
+            </span>
+            <span class="rh-request-card-kv">
+              <span class="rh-request-card-inline-label">Team</span>
+              <span class="rh-request-card-kv-value"><%= _formatTeamLabel(request.buyer_team_name) || '—' %></span>
+            </span>
+          </div>
+        <% } %>
+        <div class="rh-request-card-row rh-request-card-row--primary">
+          <span class="rh-request-card-kv rh-request-card-kv--stage">
+            <span class="rh-request-card-inline-label">Stage</span>
+            <% if (showBuyerMeta) { %>
+              <%- include('buyer-stage', { stage: request.buyer_stage, teamName: request.buyer_team_name }) %>
+            <% } else { %>
+              <span class="rh-request-card-kv-value"><%= request.buyer_stage %></span>
+            <% } %>
+          </span>
+          <span class="rh-request-card-row-group">
+            <span class="rh-request-card-kv rh-request-card-kv--geo">
+              <% if (buyerGeo === '—') { %>
+                <span class="rh-request-card-kv-value">—</span>
+              <% } else { %>
+                <%- include('geo-table-cell', { geo: buyerGeo }) %>
+              <% } %>
+            </span>
+            <span class="rh-request-card-kv rh-request-card-kv--cap">
+              <span class="rh-request-card-inline-label">cap:</span>
+              <span class="rh-request-card-kv-value rh-table-qty"><%= buyerCap %></span>
+              <% if (request.language) { %>
+                <span class="rh-request-card-dot">·</span>
+                <span class="rh-request-card-kv-value rh-geo-language"><%= request.language %></span>
+              <% } %>
+            </span>
+          </span>
+        </div>
+        <div class="rh-request-card-row rh-request-card-row--secondary">
+          <span class="rh-request-card-kv">
+            <span class="rh-request-card-inline-label">Funnel</span>
+            <span class="rh-request-card-kv-value"><%= request.funnel || '—' %></span>
+          </span>
+          <% if (request.comment) { %>
+            <span class="rh-request-card-kv rh-request-card-kv--note">
+              <span class="rh-request-card-inline-label">Note</span>
+              <span class="rh-request-card-kv-value rh-request-card-note-value">
+                <%- include('request-note', { comment: request.comment, requestId: request.id }) %>
+              </span>
+            </span>
+          <% } %>
+        </div>
+      </div>
+    </section>
+
+    <section class="rh-request-card-section rh-request-card-section--aff">
+      <div class="rh-request-card-fields">
+        <div class="rh-request-card-row rh-request-card-row--primary">
+          <span class="rh-request-card-kv rh-request-card-kv--aff">
+            <span class="rh-request-card-inline-label">Aff</span>
+            <span class="rh-request-card-kv-value">
+              <% if (request.taken_by_stage) { %>
+                <%- include('aff-user-tag', { stage: request.taken_by_stage, avatarPath: request.taken_by_avatar_path }) %>
+              <% } else { %>
+                —
+              <% } %>
+            </span>
+          </span>
+          <% if (request.taken_by_id) { %>
+            <span class="rh-request-card-row-group">
+              <span class="rh-request-card-kv rh-request-card-kv--cap">
+                <span class="rh-request-card-inline-label">cap:</span>
+                <span class="rh-request-card-kv-value rh-table-qty"><%= request.result_quantity ?? request.quantity %></span>
+                <% if (request.aff_language) { %>
+                  <span class="rh-request-card-dot">·</span>
+                  <span class="rh-request-card-kv-value rh-geo-language"><%= request.aff_language %></span>
+                <% } %>
+              </span>
+            </span>
+          <% } %>
+        </div>
+        <% if (request.taken_by_id) { %>
+        <div class="rh-request-card-row rh-request-card-row--aff-metrics">
+          <span class="rh-request-card-kv">
+            <span class="rh-request-card-inline-label">Partner</span>
+            <span class="rh-request-card-kv-value"><%= request.partner || '—' %></span>
+          </span>
+          <span class="rh-request-card-kv">
+            <span class="rh-request-card-inline-label">Wh</span>
+            <span class="rh-request-card-kv-value"><%= request.aff_wh || '—' %></span>
+          </span>
+          <span class="rh-request-card-kv">
+            <span class="rh-request-card-inline-label">Price</span>
+            <span class="rh-request-card-kv-value"><%= request.aff_price || '—' %></span>
+          </span>
+        </div>
+        <% } %>
+      </div>
+    </section>
+  </div>
+
+  <% if (canTake) { %>
+    <div class="rh-request-card-aff-actions">
+      <button
+        type="button"
+        class="btn btn-success btn-sm flex-1 rh-request-card-take-btn"
+        hx-get="/<%= request.id %>/take-modal"
+        hx-target="#modal-body"
+        hx-swap="innerHTML"
+      >Take</button>
+    </div>
+  <% } else if (isMyInProgress) { %>
+    <div class="rh-request-card-aff-actions">
+      <% if (affReady) { %>
+        <button
+          type="button"
+          class="btn btn-success btn-sm flex-1 rh-request-card-complete-btn"
+          hx-get="/<%= request.id %>/complete-modal"
+          hx-target="#modal-body"
+          hx-swap="innerHTML"
+        >Complete</button>
+      <% } else { %>
+        <button type="button" class="btn btn-success btn-sm flex-1" disabled>Complete</button>
+      <% } %>
+      <button
+        type="button"
+        class="btn btn-outline btn-sm flex-1 icon-btn"
+        hx-get="/<%= request.id %>/aff-edit-modal"
+        hx-target="#modal-body"
+        hx-swap="innerHTML"
+      >
+        <%- include('icon', { name: 'pencil', className: 'w-4 h-4' }) %>
+        Edit
+      </button>
+    </div>
+  <% } %>
+
+  <footer class="rh-request-card-foot">
+    <div class="rh-request-card-dates">
+      <div class="rh-request-card-date-line">
+        <span class="rh-request-card-date-label">Started</span>
+        <time datetime="<%= request.created_at %>"><%= _display.formatRequestDate(request.created_at) %></time>
+      </div>
+      <% if (_display.showCompletedDate(request)) { %>
+        <div class="rh-request-card-date-line">
+          <span class="rh-request-card-date-label">Completed</span>
+          <time datetime="<%= request.completed_at %>"><%= _display.formatRequestDate(request.completed_at) %></time>
+        </div>
+      <% } %>
+    </div>
+    <div class="rh-request-card-actions">
+      <%- include('request-row-actions', { request, user, affReady, error: typeof error !== 'undefined' ? error : null, mobileCard: true }) %>
+    </div>
+  </footer>
+</article>

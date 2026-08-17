@@ -1,0 +1,6 @@
+<% if (typeof geo !== 'undefined' && geo && geo !== '—') {
+  var flagUrl = typeof geoFlagUrl === 'function' ? geoFlagUrl(geo) : null;
+  if (flagUrl) { %>
+<img src="<%= flagUrl %>" alt="" class="rh-geo-flag" width="16" height="12" loading="lazy" decoding="async">
+<%   }
+} %>

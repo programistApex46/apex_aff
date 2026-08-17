@@ -1,0 +1,6 @@
+<% if (typeof success !== 'undefined' && success) { %>
+  <div role="status" class="rh-flash rh-flash--success"><span><%= success %></span></div>
+<% } %>
+<% if (typeof error !== 'undefined' && error) { %>
+  <div role="alert" class="rh-flash rh-flash--error"><span><%= error %></span></div>
+<% } %>

@@ -1,0 +1,88 @@
+<%
+  var from = pagination.totalCount === 0 ? 0 : (pagination.page - 1) * pagination.perPage + 1;
+  var to = Math.min(pagination.page * pagination.perPage, pagination.totalCount);
+  var prevPage = pagination.page > 1 ? pagination.page - 1 : null;
+  var nextPage = pagination.page < pagination.totalPages ? pagination.page + 1 : null;
+  var current = pagination.page;
+  var total = pagination.totalPages;
+  var pageItems = [];
+  var listUrl = typeof paginationListUrl === 'function' ? paginationListUrl : paginationUrl;
+
+  if (total <= 7) {
+    for (var i = 1; i <= total; i++) pageItems.push(i);
+  } else {
+    pageItems.push(1);
+    var start = Math.max(2, current - 1);
+    var end = Math.min(total - 1, current + 1);
+    if (current <= 3) {
+      start = 2;
+      end = 4;
+    }
+    if (current >= total - 2) {
+      start = total - 3;
+      end = total - 1;
+    }
+    if (start > 2) pageItems.push('gap');
+    for (var p = start; p <= end; p++) pageItems.push(p);
+    if (end < total - 1) pageItems.push('gap');
+    pageItems.push(total);
+  }
+%>
+<nav class="rh-pagination" aria-label="Pagination">
+  <p class="rh-pagination-summary"><%= from %>–<%= to %> of <%= pagination.totalCount %></p>
+  <div class="rh-pagination-bar">
+    <% if (prevPage) { %>
+      <a
+        href="<%= paginationUrl(prevPage) %>"
+        class="rh-pagination-nav"
+        aria-label="Previous page"
+        hx-get="<%= listUrl(prevPage) %>"
+        hx-target="#requests-main"
+        hx-swap="innerHTML show:none"
+      >
+        <%- include('../partials/icon', { name: 'chevron-left', className: 'w-5 h-5' }) %>
+      </a>
+    <% } else { %>
+      <span class="rh-pagination-nav is-disabled" aria-hidden="true">
+        <%- include('../partials/icon', { name: 'chevron-left', className: 'w-5 h-5' }) %>
+      </span>
+    <% } %>
+
+    <div class="rh-pagination-pages">
+      <% pageItems.forEach(function(item) { %>
+        <% if (item === 'gap') { %>
+          <span class="rh-pagination-gap" aria-hidden="true">…</span>
+        <% } else if (item === current) { %>
+          <span class="rh-pagination-page is-current" aria-current="page"><%= item %></span>
+        <% } else { %>
+          <a
+            href="<%= paginationUrl(item) %>"
+            class="rh-pagination-page"
+            hx-get="<%= listUrl(item) %>"
+            hx-target="#requests-main"
+            hx-swap="innerHTML show:none"
+          ><%= item %></a>
+        <% } %>
+      <% }) %>
+    </div>
+
+    <span class="rh-pagination-status"><%= current %> / <%= total %></span>
+
+    <% if (nextPage) { %>
+      <a
+        href="<%= paginationUrl(nextPage) %>"
+        class="rh-pagination-nav"
+        aria-label="Next page"
+        hx-get="<%= listUrl(nextPage) %>"
+        hx-target="#requests-main"
+        hx-swap="innerHTML show:none"
+      >
+        <%- include('../partials/icon', { name: 'chevron-right', className: 'w-5 h-5' }) %>
+      </a>
+    <% } else { %>
+      <span class="rh-pagination-nav is-disabled" aria-hidden="true">
+        <%- include('../partials/icon', { name: 'chevron-right', className: 'w-5 h-5' }) %>
+      </span>
+    <% } %>
+  </div>
+</nav>

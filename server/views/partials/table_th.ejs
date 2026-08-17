@@ -1,0 +1,28 @@
+<% var thClass = 'rh-th'; %>
+<% if (typeof align !== 'undefined' && align === 'right') { thClass += ' rh-th-right'; } else if (typeof align !== 'undefined' && align === 'center') { thClass += ' rh-th-center'; } %>
+<% if (typeof group !== 'undefined' && group === 'buyer') { thClass += ' rh-th-buyer'; } else if (typeof group !== 'undefined' && group === 'aff') { thClass += ' rh-th-aff'; } else if (typeof group !== 'undefined' && group === 'meta') { thClass += ' rh-th-meta'; } %>
+<% if (typeof sortKey !== 'undefined' && sortKey) { thClass += ' rh-th-sortable'; } %>
+<% var active = typeof sortKey !== 'undefined' && sortKey && typeof isSortActive === 'function' && isSortActive(sortKey); %>
+<% if (active) { thClass += ' rh-th-sorted'; } %>
+<% var colKey = typeof sortKey !== 'undefined' && sortKey ? sortKey : label; %>
+<th class="<%= thClass %>" data-col-key="<%= colKey %>">
+  <% if (typeof sortKey !== 'undefined' && sortKey) { %>
+    <a
+      href="<%= sortToggleUrl(sortKey) %>"
+      class="rh-th-link rh-th-sort-link"
+      data-sort-key="<%= sortKey %>"
+    >
+      <span class="rh-th-inner">
+        <span><%= label %></span>
+        <span class="rh-sort-indicator" aria-hidden="true"><%= active ? (sort.dir === 'asc' ? '▲' : '▼') : '' %></span>
+      </span>
+    </a>
+  <% } else if (typeof icon !== 'undefined' && icon) { %>
+    <span class="rh-th-inner">
+      <%- include('icon', { name: icon, className: 'w-3.5 h-3.5 rh-th-icon' }) %>
+      <span><%= label %></span>
+    </span>
+  <% } else { %>
+    <span><%= label %></span>
+  <% } %>
+</th>

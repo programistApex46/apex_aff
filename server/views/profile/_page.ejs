@@ -1,0 +1,218 @@
+<div hidden data-rh-page="profile" data-rh-title="Profile · Request Hub"></div>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
+
+<div class="rh-profile-wrap">
+  <header class="rh-profile-head">
+    <h1 class="rh-profile-title">Profile</h1>
+  </header>
+
+  <% if (success) { %>
+    <div role="status" class="rh-flash rh-flash--success rh-profile-flash">
+      <% if (success === 'profile') { %><span>Profile saved</span><% } %>
+      <% if (success === 'password') { %><span>Password changed</span><% } %>
+      <% if (success === 'avatar') { %><span>Avatar updated</span><% } %>
+      <% if (success === 'avatar_removed') { %><span>Avatar removed</span><% } %>
+      <% if (success === 'passkey') { %><span>Touch ID / Face ID linked</span><% } %>
+      <% if (success === 'telegram') { %><span>Telegram linked</span><% } %>
+      <% if (success === 'telegram_reset') { %><span>Telegram unlinked. You can connect a new account</span><% } %>
+    </div>
+  <% } %>
+
+  <% if (error) { %>
+    <div role="alert" class="rh-flash rh-flash--error rh-profile-flash"><span><%= error %></span></div>
+  <% } %>
+
+  <section class="rh-profile-hero">
+    <div class="rh-profile-hero-user">
+      <div class="rh-profile-avatar-preview" id="profile-avatar-preview">
+        <%- include('../partials/user-avatar', { user: profile, avatarClass: 'rh-avatar-lg' }) %>
+      </div>
+      <div class="rh-profile-hero-text">
+        <span class="rh-profile-hero-name"><%= profile.stage || profile.username %></span>
+        <span class="rh-profile-hero-role"><%= profile.role %></span>
+      </div>
+    </div>
+    <div class="rh-profile-group rh-profile-group--flush">
+      <label class="rh-profile-row rh-profile-row--action">
+        <span>Upload photo</span>
+        <input type="file" accept="image/*" class="hidden" id="profile-avatar-input">
+      </label>
+      <% if (profile.avatar_path) { %>
+        <form
+          method="post"
+          action="/profile/avatar/remove"
+          class="rh-profile-row-form"
+          hx-post="/profile/avatar/remove"
+          hx-target="#rh-page"
+          hx-swap="innerHTML show:none"
+        >
+          <button type="submit" class="rh-profile-row rh-profile-row--action rh-profile-row--danger">Remove avatar</button>
+        </form>
+      <% } %>
+    </div>
+    <p class="rh-profile-hint rh-profile-hint--spaced">PNG, JPG, or WebP, up to 2 MB. You can crop the image to a circle.</p>
+  </section>
+
+  <form
+    method="post"
+    action="/profile"
+    class="rh-profile-block"
+    hx-post="/profile"
+    hx-target="#rh-page"
+    hx-swap="innerHTML show:none"
+  >
+    <h2 class="rh-profile-group-title">Profile</h2>
+    <div class="rh-profile-group">
+      <label class="rh-profile-row">
+        <span class="rh-profile-row-label">Name</span>
+        <input type="text" name="stage" class="rh-profile-input" value="<%= profile.stage || profile.username %>" autocomplete="nickname" required>
+      </label>
+      <label class="rh-profile-row">
+        <span class="rh-profile-row-label">Email</span>
+        <input type="email" name="email" class="rh-profile-input" value="<%= profile.email || '' %>" autocomplete="email" placeholder="name@example.com">
+      </label>
+      <div class="rh-profile-row rh-profile-row--static">
+        <span class="rh-profile-row-label">Role</span>
+        <span class="rh-profile-row-value"><%= profile.role %></span>
+      </div>
+    </div>
+    <p class="rh-profile-hint">Email is required for Google sign-in</p>
+    <button type="submit" class="rh-profile-pill">Save</button>
+  </form>
+
+  <form
+    method="post"
+    action="/profile/password"
+    class="rh-profile-block"
+    hx-post="/profile/password"
+    hx-target="#rh-page"
+    hx-swap="innerHTML show:none"
+  >
+    <h2 class="rh-profile-group-title">Change password</h2>
+    <div class="rh-profile-group">
+      <label class="rh-profile-row rh-profile-row--stack">
+        <span class="rh-profile-row-label">Current password</span>
+        <input type="password" name="current_password" class="rh-profile-input rh-profile-input--block" autocomplete="current-password">
+      </label>
+      <label class="rh-profile-row rh-profile-row--stack">
+        <span class="rh-profile-row-label">New password</span>
+        <input type="password" name="new_password" class="rh-profile-input rh-profile-input--block" autocomplete="new-password" minlength="6">
+      </label>
+      <label class="rh-profile-row rh-profile-row--stack">
+        <span class="rh-profile-row-label">Confirm password</span>
+        <input type="password" name="confirm_password" class="rh-profile-input rh-profile-input--block" autocomplete="new-password" minlength="6">
+      </label>
+    </div>
+    <button type="submit" class="rh-profile-pill">Change password</button>
+  </form>
+
+  <section class="rh-profile-block">
+    <h2 class="rh-profile-group-title">Telegram</h2>
+    <% if (telegramConnected) { %>
+      <div class="rh-profile-group">
+        <div class="rh-profile-row rh-profile-row--static">
+          <span class="rh-profile-row-label">Status</span>
+          <span class="rh-profile-row-value rh-profile-row-value--ok">Connected</span>
+        </div>
+        <a href="<%= telegramBotUrl %>" class="rh-profile-row rh-profile-row--action" target="_blank" rel="noopener noreferrer">
+          <span class="rh-profile-row-label">Bot</span>
+          <span class="rh-profile-row-value">@<%= telegramBotUsername %></span>
+        </a>
+        <form
+          method="post"
+          action="/profile/telegram/unlink"
+          class="rh-profile-row-form"
+          hx-post="/profile/telegram/unlink"
+          hx-target="#rh-page"
+          hx-swap="innerHTML show:none"
+        >
+          <button type="submit" class="rh-profile-row rh-profile-row--action rh-profile-row--danger">Unlink Telegram</button>
+        </form>
+      </div>
+      <p class="rh-profile-hint">Request notifications will be sent to Telegram. To connect a different account, unlink the current one first.</p>
+    <% } else { %>
+      <p class="rh-profile-lead">
+        To receive notifications, link your account via the bot
+        <a href="<%= telegramBotUrl %>" target="_blank" rel="noopener noreferrer">@<%= telegramBotUsername %></a>.
+        You do not need to enter a chat ID.
+      </p>
+      <ol class="rh-profile-steps">
+        <li>Tap <strong>Open bot</strong> — Telegram will open.</li>
+        <li>In the chat, tap <strong>Start</strong>.</li>
+        <li>Return here and tap <strong>Check</strong>.</li>
+      </ol>
+      <% if (telegramBindLink) { %>
+        <a href="<%= telegramBindLink %>" class="rh-profile-pill" target="_blank" rel="noopener noreferrer">Open bot</a>
+        <form
+          method="post"
+          action="/profile/telegram/refresh"
+          class="rh-profile-inline-form"
+          hx-post="/profile/telegram/refresh"
+          hx-target="#rh-page"
+          hx-swap="innerHTML show:none"
+        >
+          <button type="submit" class="rh-profile-text-action">New link</button>
+        </form>
+        <button
+          type="button"
+          class="rh-profile-text-action"
+          hx-get="/profile"
+          hx-target="#rh-page"
+          hx-swap="innerHTML show:none"
+        >Check</button>
+        <p class="rh-profile-hint">The link expires in 30 minutes.</p>
+      <% } else { %>
+        <p class="rh-profile-hint">The Telegram bot is not configured on the server. Contact an administrator.</p>
+      <% } %>
+    <% } %>
+  </section>
+
+  <section class="rh-profile-block">
+    <h2 class="rh-profile-group-title">Touch ID / Face ID</h2>
+    <% if (passkeyCount > 0) { %>
+      <div class="rh-profile-group">
+        <div class="rh-profile-row rh-profile-row--static">
+          <span class="rh-profile-row-label">Keys</span>
+          <span class="rh-profile-row-value"><%= passkeyCount %></span>
+        </div>
+      </div>
+      <p class="rh-profile-hint">You can add another device.</p>
+    <% } else { %>
+      <p class="rh-profile-lead">Link Touch ID or Face ID for quick passwordless sign-in.</p>
+    <% } %>
+    <button type="button" class="rh-profile-pill" id="webauthn-register-btn">
+      <% if (passkeyCount > 0) { %>Add Touch ID / Face ID<% } else { %>Link Touch ID / Face ID<% } %>
+    </button>
+    <p class="rh-profile-hint">
+      After changing domains, you need to link the key again. If Bitwarden opens, choose this device / Touch ID.
+    </p>
+    <p id="webauthn-register-status" class="rh-profile-hint hidden"></p>
+  </section>
+</div>
+
+<dialog id="avatar-crop-modal" class="modal">
+  <div class="modal-box rh-avatar-crop-modal">
+    <div class="rh-modal-page-head mb-3">
+      <div class="rh-modal-page-head-text">
+        <h3 class="rh-modal-sheet-title">Crop photo</h3>
+        <p class="rh-muted text-sm">Move and zoom the image inside the circle</p>
+      </div>
+      <button type="button" class="rh-profile-icon-close" id="avatar-crop-cancel-top" title="Close" aria-label="Close">
+        <%- include('../partials/icon', { name: 'x', className: 'w-5 h-5' }) %>
+      </button>
+    </div>
+    <div class="rh-avatar-cropper rh-avatar-cropper-wrap">
+      <img id="avatar-crop-image" alt="Avatar crop">
+    </div>
+    <div class="rh-avatar-crop-actions">
+      <button type="button" class="rh-profile-text-action" id="avatar-crop-cancel">Cancel</button>
+      <button type="button" class="rh-profile-pill rh-profile-pill--inline" id="avatar-crop-save">Save</button>
+    </div>
+  </div>
+  <form method="dialog" class="modal-backdrop">
+    <button type="submit" aria-label="Close">close</button>
+  </form>
+</dialog>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
+<script src="/js/profile.js"></script>

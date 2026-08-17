@@ -1,0 +1,46 @@
+<%
+  var availableLeads = request.available_leads ?? request.quantity;
+%>
+<div class="request-take-modal rh-modal-page">
+  <div class="rh-modal-page-head">
+    <div class="rh-modal-page-head-text">
+      <h3 class="rh-modal-sheet-title">Take request</h3>
+      <p class="rh-muted text-sm mt-1">Request #<%= request.id %> · <%= availableLeads %> leads available</p>
+    </div>
+    <%- include('modal-close') %>
+  </div>
+
+  <form
+    method="post"
+    action="/<%= request.id %>/take"
+    class="rh-modal-page-form flex flex-col"
+    hx-post="/<%= request.id %>/take"
+    hx-swap="none"
+  >
+    <div class="rh-modal-page-body">
+      <% if (error) { %>
+        <div role="alert" class="rh-flash rh-flash--error"><span><%= error %></span></div>
+      <% } %>
+
+      <label class="form-control w-full">
+        <span class="label-text mb-1">How many leads are you taking?</span>
+        <input
+          type="number"
+          name="cap_taken"
+          class="input input-bordered input-sm w-full"
+          min="1"
+          max="<%= availableLeads %>"
+          step="1"
+          value="<%= form.cap_taken ?? availableLeads %>"
+          required
+        />
+      </label>
+      <p class="rh-muted text-sm mt-2">Take all <%= availableLeads %> leads or enter a smaller amount — the rest will become a new unassigned task from the same buyer.</p>
+    </div>
+
+    <div class="rh-modal-page-foot">
+      <button type="submit" class="rh-profile-pill">Confirm</button>
+      <button type="button" class="rh-profile-text-action" onclick="if (window.modal) window.modal.close()">Cancel</button>
+    </div>
+  </form>
+</div>

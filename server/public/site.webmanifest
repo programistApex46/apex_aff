@@ -1,0 +1,16 @@
+{
+  "name": "Request Hub",
+  "short_name": "RH",
+  "start_url": "/",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "500x500",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "theme_color": "#e8eaef",
+  "background_color": "#e8eaef",
+  "display": "standalone"
+}

@@ -1,0 +1,18 @@
+<% if (!geo || geo === '—') { %>
+  —
+<% } else {
+  var geoCode = geo.trim().toUpperCase();
+  var geoName = geoTableName(geo);
+  var geoLabel = geoName ? geoName + ' | ' + geoCode : geo;
+%>
+  <span class="rh-geo-cell" title="<%= geoLabel %>">
+    <%- include('geo-flag', { geo: geo }) %>
+    <span class="rh-geo-cell-text">
+      <% if (geoName) { %>
+        <%= geoName %> | <span class="rh-geo-cell-code"><%= geoCode %></span>
+      <% } else { %>
+        <span class="rh-geo-cell-code"><%= geo %></span>
+      <% } %>
+    </span>
+  </span>
+<% } %>

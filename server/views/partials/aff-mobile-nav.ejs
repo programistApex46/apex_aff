@@ -1,0 +1,53 @@
+<%
+  var nav = affMobileNav;
+  var onProfilePage = typeof isProfilePage !== 'undefined' && isProfilePage;
+  var tabs = [
+    {
+      key: 'all',
+      label: 'All',
+      icon: 'clipboard',
+      href: '/',
+      listUrl: '/list',
+      count: null,
+    },
+    {
+      key: 'mine',
+      label: 'Mine',
+      icon: 'user',
+      href: '/?assigned=' + nav.userId,
+      listUrl: '/list?assigned=' + nav.userId,
+      count: nav.myCount,
+    },
+    {
+      key: 'available',
+      label: 'Unassigned',
+      icon: 'inbox',
+      href: '/?assigned=none',
+      listUrl: '/list?assigned=none',
+      count: nav.unassignedCount,
+    },
+  ];
+%>
+<div class="rh-mobile-aff-tabs" role="tablist" aria-label="Request filters" data-active="<%= nav.active %>" data-filter-active="<%= nav.active %>" data-user-id="<%= nav.userId %>">
+  <span class="rh-mobile-aff-tab-indicator" aria-hidden="true"></span>
+  <% tabs.forEach(function(tab) { %>
+    <a
+      href="<%= tab.href %>"
+      class="rh-mobile-aff-tab<%= nav.active === tab.key ? ' is-active' : '' %>"
+      data-tab-key="<%= tab.key %>"
+      role="tab"
+      aria-selected="<%= nav.active === tab.key ? 'true' : 'false' %>"
+      aria-label="<%= tab.label %><% if (tab.count !== null && tab.count > 0) { %>, <%= tab.count %><% } %>"
+      data-list-url="<%= tab.listUrl %>"
+      <%- include('app-nav', { url: tab.href }) %>
+    >
+      <span class="rh-mobile-aff-tab-icon-wrap">
+        <%- include('icon', { name: tab.icon, className: 'rh-mobile-aff-tab-icon' }) %>
+        <% if (tab.count !== null && tab.count > 0) { %>
+          <span class="rh-mobile-aff-tab-badge"><%= tab.count > 99 ? '99+' : tab.count %></span>
+        <% } %>
+      </span>
+      <span class="rh-mobile-aff-tab-label"><%= tab.label %></span>
+    </a>
+  <% }) %>
+</div>

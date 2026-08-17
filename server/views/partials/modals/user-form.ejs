@@ -1,0 +1,207 @@
+<%
+  var roleOptions = [
+    { value: 'admin', label: 'admin' },
+    { value: 'teamlead', label: 'tl' },
+    { value: 'buyer', label: 'buyer' },
+    { value: 'aff', label: 'aff' },
+  ];
+  var teamRoles = ['teamlead', 'buyer', 'aff'];
+%>
+<div class="user-form-modal rh-modal-page">
+  <div class="rh-modal-page-head">
+    <div class="rh-modal-page-head-text">
+      <h3 class="rh-modal-sheet-title">Create user</h3>
+      <p class="rh-muted text-sm mt-1">
+        <% if (isTeamlead) { %>
+          Create a buyer on your team.
+        <% } else { %>
+          Create a user and assign a role.
+        <% } %>
+      </p>
+    </div>
+    <%- include('modal-close') %>
+  </div>
+
+  <form
+    method="post"
+    action="/users"
+    class="rh-modal-page-form"
+    hx-post="/users"
+    hx-target="#modal-body"
+    hx-swap="innerHTML"
+  >
+    <div class="rh-modal-page-body">
+      <% if (error) { %>
+        <div role="alert" class="rh-flash rh-flash--error"><span><%= error %></span></div>
+      <% } %>
+    <div class="rh-profile-group">
+    <label class="form-control w-full">
+      <span class="label-text mb-1">Stage</span>
+      <input type="text" name="stage" class="input input-bordered w-full input-sm" value="<%= form.stage || form.username || '' %>" required />
+    </label>
+
+    <label class="form-control w-full">
+      <span class="label-text mb-1">Email</span>
+      <input type="email" name="email" class="input input-bordered w-full input-sm" value="<%= form.email || '' %>" />
+    </label>
+
+    <label class="form-control w-full">
+      <span class="label-text mb-1">Telegram ID</span>
+      <input type="text" name="telegram_chat_id" class="input input-bordered w-full input-sm" value="<%= form.telegram_chat_id || '' %>" />
+    </label>
+
+    <label
+      id="company-field"
+      class="form-control w-full"
+      <% if (!isTeamlead && form.role !== 'buyer' && form.role !== 'teamlead') { %>style="display: none;"<% } %>
+    >
+      <span class="label-text mb-1">Company <span class="rh-muted">(optional)</span></span>
+      <select name="company" class="select select-bordered select-sm w-full">
+        <option value="">Select…</option>
+        <% USER_COMPANIES.forEach(function(company) { %>
+          <option value="<%= company %>" <%= form.company === company ? 'selected' : '' %>><%= company %></option>
+        <% }) %>
+      </select>
+    </label>
+
+    <label class="form-control w-full">
+      <span class="label-text mb-1">Password</span>
+      <input type="text" name="password" class="input input-bordered w-full input-sm" autocomplete="new-password" required />
+    </label>
+
+    <% if (isTeamlead) { %>
+      <input type="hidden" name="role" value="buyer" />
+      <input type="hidden" name="team_lead_id" value="<%= form.team_lead_id %>" />
+      <input type="hidden" name="team_id" value="<%= form.team_id %>" />
+    <% } else { %>
+      <label class="form-control w-full">
+        <span class="label-text mb-1">Role</span>
+        <select id="role" name="role" class="select select-bordered select-sm w-full" onchange="toggleUserFormFields()">
+          <% roleOptions.forEach(function(r) { %>
+            <option value="<%= r.value %>" <%= form.role === r.value ? 'selected' : '' %>><%= r.label %></option>
+          <% }) %>
+        </select>
+      </label>
+
+      <div id="team-id-field" class="form-control w-full" style="display: none;">
+        <span class="label-text mb-1">Team</span>
+        <select id="team-id-select" name="team_id" class="select select-bordered select-sm w-full">
+          <option value="">Select…</option>
+          <% if (isTeamlead) { %>
+            <% buyerTeams.forEach(function(team) { %>
+              <option value="<%= team.id %>" <%= String(form.team_id) === String(team.id) ? 'selected' : '' %>><%= team.name %></option>
+            <% }) %>
+          <% } %>
+        </select>
+        <% if (isTeamlead && !buyerTeams.length) { %>
+          <span class="text-xs rh-muted mt-1">No buyer teams yet — ask admin to create one.</span>
+        <% } else if (!isTeamlead && !buyerTeams.length && !affTeams.length) { %>
+          <span class="text-xs rh-muted mt-1">No teams yet — <button type="button" class="link link-primary" hx-get="/teams/new-modal" hx-target="#modal-body" hx-swap="innerHTML">create one</button></span>
+        <% } %>
+      </div>
+
+      <div id="team-lead-field" class="form-control w-full" style="display: none;">
+        <span class="label-text mb-1">Team lead</span>
+        <select name="team_lead_id" class="select select-bordered select-sm w-full">
+          <option value="">Select…</option>
+          <% teamleads.forEach(function(tl) { %>
+            <option value="<%= tl.id %>" <%= String(form.team_lead_id) === String(tl.id) ? 'selected' : '' %>><%= tl.stage %></option>
+          <% }) %>
+        </select>
+      </div>
+    <% } %>
+    </div>
+    </div>
+
+    <footer class="rh-modal-page-foot">
+      <button type="submit" class="rh-profile-pill">Create</button>
+    </footer>
+  </form>
+</div>
+
+<script>
+  <% if (!isTeamlead) { %>
+  var rhTeamsByKind = {
+    buyer: <%- JSON.stringify(buyerTeams) %>,
+    aff: <%- JSON.stringify(affTeams) %>
+  };
+  var rhInitialTeamId = <%- JSON.stringify(String(form.team_id || '')) %>;
+  <% } %>
+
+  function teamKindForRole(role) {
+    if (role === 'aff') return 'aff';
+    if (role === 'teamlead' || role === 'buyer') return 'buyer';
+    return null;
+  }
+
+  function syncTeamSelect() {
+    var roleEl = document.getElementById('role');
+    var teamSelect = document.getElementById('team-id-select');
+    if (!roleEl || !teamSelect || typeof rhTeamsByKind === 'undefined') return;
+
+    var kind = teamKindForRole(roleEl.value);
+    var current = teamSelect.value;
+    teamSelect.innerHTML = '<option value="">Select…</option>';
+    if (!kind) return;
+
+    rhTeamsByKind[kind].forEach(function (team) {
+      var opt = document.createElement('option');
+      opt.value = String(team.id);
+      opt.textContent = team.name;
+      teamSelect.appendChild(opt);
+    });
+
+    if (current && Array.from(teamSelect.options).some(function (o) { return o.value === current; })) {
+      teamSelect.value = current;
+    } else if (rhInitialTeamId && Array.from(teamSelect.options).some(function (o) { return o.value === rhInitialTeamId; })) {
+      teamSelect.value = rhInitialTeamId;
+    }
+  }
+
+  function toggleCompanyField() {
+    var companyField = document.getElementById('company-field');
+    var roleEl = document.getElementById('role');
+    if (!companyField || !roleEl) return;
+
+    var allowed = roleEl.value === 'buyer' || roleEl.value === 'teamlead';
+    companyField.style.display = allowed ? '' : 'none';
+    if (!allowed) {
+      var select = companyField.querySelector('select[name="company"]');
+      if (select) select.value = '';
+    }
+  }
+
+  function toggleUserFormFields() {
+    var role = document.getElementById('role');
+    var teamIdField = document.getElementById('team-id-field');
+    var teamLeadField = document.getElementById('team-lead-field');
+    if (!role) return;
+
+    var teamRoles = ['teamlead', 'buyer', 'aff'];
+    var needsTeam = teamRoles.indexOf(role.value) !== -1;
+    var isBuyer = role.value === 'buyer';
+
+    if (teamIdField) {
+      teamIdField.style.display = needsTeam ? '' : 'none';
+      var teamSelect = document.getElementById('team-id-select');
+      if (teamSelect) {
+        teamSelect.required = needsTeam;
+        if (!needsTeam) teamSelect.value = '';
+      }
+      syncTeamSelect();
+    }
+
+    if (teamLeadField) {
+      teamLeadField.style.display = isBuyer ? '' : 'none';
+      var tlSelect = teamLeadField.querySelector('select');
+      if (tlSelect) {
+        tlSelect.required = isBuyer;
+        if (!isBuyer) tlSelect.value = '';
+      }
+    }
+
+    toggleCompanyField();
+  }
+
+  toggleUserFormFields();
+</script>

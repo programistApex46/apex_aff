@@ -1,0 +1,131 @@
+<%
+  var initialGeo = form.geo === '__other__' ? (form.geo_other || '') : (form.geo || '');
+%>
+<div
+  class="rh-quiz"
+  id="request-quiz-root"
+  data-username="<%= userStage(user) %>"
+  data-draft-id="<%= form.draft_id || '' %>"
+  data-initial-geo="<%= initialGeo %>"
+  data-initial-quantity="<%= form.quantity || '' %>"
+  data-initial-funnel="<%= form.funnel || '' %>"
+  data-initial-comment="<%= form.comment || '' %>"
+  data-is-draft="<%= typeof isDraft !== 'undefined' && isDraft ? '1' : '' %>"
+>
+  <header class="rh-quiz-header">
+    <div class="rh-quiz-header-text">
+      <h3 class="rh-modal-sheet-title"><%= typeof isDraft !== 'undefined' && isDraft ? 'Continue request' : 'New request' %></h3>
+      <p class="rh-quiz-stage">Stage: <strong><%= userStage(user) %></strong> · <span id="request-quiz-step-label">1 / 5</span></p>
+    </div>
+    <button type="button" class="rh-modal-close" id="request-quiz-close" title="Save & close" aria-label="Close">
+      <%- include('../icon', { name: 'x', className: 'w-5 h-5' }) %>
+    </button>
+  </header>
+
+  <div class="rh-quiz-progress"><div class="rh-quiz-progress-bar" id="request-quiz-progress"></div></div>
+
+  <% if (error) { %>
+    <div role="alert" class="rh-flash rh-flash--error rh-quiz-alert"><span><%= error %></span></div>
+  <% } %>
+
+  <div class="rh-quiz-body">
+    <section class="rh-quiz-step" data-step="1">
+      <div class="rh-quiz-step-inner">
+        <h2 class="rh-quiz-title">GEO</h2>
+        <p class="rh-quiz-subtitle">Where should leads come from?</p>
+        <div class="rh-profile-group">
+          <label class="rh-profile-row">
+            <input
+              type="text"
+              id="quiz-geo"
+              class="rh-profile-input rh-profile-input--block"
+              list="quiz-geo-list"
+              value="<%= initialGeo %>"
+              placeholder="Select or type, e.g. UA"
+              autocomplete="off"
+            >
+          </label>
+          <datalist id="quiz-geo-list">
+            <% commonGeos.forEach(function(g) { %>
+              <option value="<%= g %>"></option>
+            <% }) %>
+          </datalist>
+        </div>
+        <p class="rh-quiz-error hidden" id="quiz-error-1"></p>
+      </div>
+    </section>
+
+    <section class="rh-quiz-step hidden" data-step="2">
+      <div class="rh-quiz-step-inner">
+        <h2 class="rh-quiz-title">Cap</h2>
+        <p class="rh-quiz-subtitle">How many leads do you need?</p>
+        <div class="rh-profile-group">
+          <label class="rh-profile-row">
+            <input type="number" id="quiz-quantity" class="rh-profile-input rh-profile-input--block" min="1" step="1" inputmode="numeric" value="<%= form.quantity || '' %>" placeholder="e.g. 100">
+          </label>
+        </div>
+        <p class="rh-quiz-error hidden" id="quiz-error-2">Enter a whole number greater than 0</p>
+      </div>
+    </section>
+
+    <section class="rh-quiz-step hidden" data-step="3">
+      <div class="rh-quiz-step-inner">
+        <h2 class="rh-quiz-title">Funnel</h2>
+        <p class="rh-quiz-subtitle">Which funnel is this for?</p>
+        <div class="rh-profile-group">
+          <label class="rh-profile-row">
+            <input type="text" id="quiz-funnel" class="rh-profile-input rh-profile-input--block" value="<%= form.funnel || '' %>" placeholder="e.g. Main">
+          </label>
+        </div>
+        <p class="rh-quiz-error hidden" id="quiz-error-3">Enter funnel name</p>
+      </div>
+    </section>
+
+    <section class="rh-quiz-step hidden" data-step="4">
+      <div class="rh-quiz-step-inner">
+        <h2 class="rh-quiz-title">Note</h2>
+        <p class="rh-quiz-subtitle">Optional details for Affs</p>
+        <div class="rh-profile-group">
+          <label class="rh-profile-row rh-profile-row--stack rh-quiz-note-row">
+            <textarea id="quiz-comment" class="rh-profile-input rh-profile-input--block rh-quiz-field--area" rows="4" placeholder="Optional"><%= form.comment || '' %></textarea>
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <section class="rh-quiz-step hidden" data-step="5">
+      <div class="rh-quiz-step-inner">
+        <h2 class="rh-quiz-title">Review</h2>
+        <p class="rh-quiz-subtitle">Check everything before sending</p>
+        <div class="rh-profile-group rh-quiz-review">
+          <div class="rh-profile-row rh-profile-row--static">
+            <span class="rh-profile-row-label">Stage</span>
+            <span class="rh-profile-row-value" id="quiz-review-stage"><%= userStage(user) %></span>
+          </div>
+          <div class="rh-profile-row rh-profile-row--static">
+            <span class="rh-profile-row-label">GEO</span>
+            <span class="rh-profile-row-value" id="quiz-review-geo">—</span>
+          </div>
+          <div class="rh-profile-row rh-profile-row--static">
+            <span class="rh-profile-row-label">Cap</span>
+            <span class="rh-profile-row-value" id="quiz-review-cap">—</span>
+          </div>
+          <div class="rh-profile-row rh-profile-row--static">
+            <span class="rh-profile-row-label">Funnel</span>
+            <span class="rh-profile-row-value" id="quiz-review-funnel">—</span>
+          </div>
+          <div class="rh-profile-row rh-profile-row--static">
+            <span class="rh-profile-row-label">Note</span>
+            <span class="rh-profile-row-value" id="quiz-review-comment">—</span>
+          </div>
+        </div>
+        <p class="rh-quiz-error hidden" id="quiz-error-5"></p>
+      </div>
+    </section>
+  </div>
+
+  <footer class="rh-quiz-footer">
+    <button type="button" class="rh-profile-text-action hidden" id="request-quiz-back">Back</button>
+    <button type="button" class="rh-profile-pill" id="request-quiz-next">Next</button>
+  </footer>
+</div>

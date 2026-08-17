@@ -1,0 +1,10 @@
+<div class="rh-request-create">
+  <% if (typeof quizOnly === 'undefined' || !quizOnly) { %>
+  <div class="rh-request-desktop">
+    <%- include('request-form', { commonGeos, form, error, user, isDraft }) %>
+  </div>
+  <% } %>
+  <div class="rh-request-mobile">
+    <%- include('request-quiz', { commonGeos, form, error, user, isDraft }) %>
+  </div>
+</div>

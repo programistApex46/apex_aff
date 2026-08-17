@@ -1,0 +1,11 @@
+<%
+  var noteInfo = truncateNote(comment, 6);
+%>
+<% if (noteInfo.full) { %>
+  <button
+    type="button"
+    class="rh-note-preview rh-note-preview--link"
+    data-request-id="<%= requestId %>"
+    title="<%= noteInfo.full %>"
+  ><%= noteInfo.preview %></button>
+<% } %>

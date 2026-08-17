@@ -1,0 +1,6 @@
+node_modules
+.env
+*.sqlite
+Caddyfile
+package-lock.json
+.cursor

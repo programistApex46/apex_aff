@@ -1,0 +1,87 @@
+<% if (typeof bare === 'undefined' || !bare) { %>
+  </main>
+
+  <dialog id="modal" class="modal">
+    <div class="modal-box">
+      <div id="modal-body"></div>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+      <button type="submit">close</button>
+    </form>
+  </dialog>
+
+  <dialog id="note-modal" class="modal">
+    <div class="modal-box rh-note-modal">
+      <div class="rh-modal-page-head rh-note-modal-head">
+        <div class="rh-modal-page-head-text">
+          <p class="rh-note-modal-kicker">Comment</p>
+          <div class="rh-note-modal-title-row">
+            <h3 class="rh-modal-sheet-title">Note</h3>
+            <span class="badge badge-sm badge-neutral rh-note-modal-badge" id="note-modal-request"></span>
+          </div>
+        </div>
+        <button type="button" class="rh-modal-close" onclick="document.getElementById('note-modal').close()" title="Close" aria-label="Close">
+          <%- include('icon', { name: 'x', className: 'w-5 h-5' }) %>
+        </button>
+      </div>
+      <div class="rh-note-modal-body">
+        <p id="note-modal-text" class="rh-note-modal-text"></p>
+      </div>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+      <button type="submit">close</button>
+    </form>
+  </dialog>
+
+  <div id="request-quiz" class="rh-quiz-overlay" hidden>
+    <div id="request-quiz-body"></div>
+  </div>
+<% } %>
+  <script>
+    function updateThemeToggleLabel() {
+      var current = localStorage.getItem('rh-theme') || 'light';
+      var label = current === 'dark' ? 'Light mode' : 'Dark mode';
+      document.querySelectorAll('.rh-theme-toggle-label').forEach(function (el) {
+        el.textContent = label;
+      });
+    }
+
+    function applyTheme(mode) {
+      var theme = mode === 'dark' ? 'rh-dark' : 'rh-light';
+      document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem('rh-theme', mode);
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.content = mode === 'dark' ? '#0e0f12' : '#e8eaef';
+      updateThemeToggleLabel();
+    }
+
+    function toggleTheme() {
+      var current = localStorage.getItem('rh-theme') || 'light';
+      applyTheme(current === 'dark' ? 'light' : 'dark');
+    }
+
+    updateThemeToggleLabel();
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js');
+    }
+  </script>
+  <% if (typeof bare === 'undefined' || !bare) { %>
+  <% if (typeof user !== 'undefined' && user && user.role === 'aff') { %>
+  <script src="/js/aff-mobile-nav.js"></script>
+  <% } %>
+  <script src="/js/shell.js"></script>
+  <script src="/js/request-quiz.js"></script>
+  <script type="module" src="/js/webauthn-register.js"></script>
+  <% if (typeof user !== 'undefined' && user && user.role === 'buyer') { %>
+  <script src="/js/buyer-mobile-nav.js"></script>
+  <% } %>
+  <% if (typeof user !== 'undefined' && user && user.role === 'teamlead') { %>
+  <script src="/js/tl-mobile-nav.js"></script>
+  <% } %>
+  <% if (typeof user !== 'undefined' && user && (user.role === 'aff' || user.role === 'teamlead')) { %>
+  <script src="/js/request-desks.js"></script>
+  <% } %>
+  <% } %>
+</body>
+</html>

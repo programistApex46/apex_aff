@@ -1,0 +1,47 @@
+<div class="users-modal-shell rh-modal-page">
+  <div class="rh-modal-page-head">
+    <div class="rh-modal-page-head-text">
+      <h3 class="rh-modal-sheet-title">Users</h3>
+      <p class="rh-muted text-sm mt-1">
+        <% if (typeof isTeamlead !== 'undefined' && isTeamlead) { %>
+          Manage buyers on your team.
+        <% } else { %>
+          Manage team members and access.
+        <% } %>
+      </p>
+    </div>
+    <%- include('modal-close') %>
+  </div>
+
+  <div class="rh-modal-page-body">
+    <%- include('modal-search', { id: 'users-modal-search', placeholder: 'Search users' }) %>
+
+    <div id="users-list-wrap">
+      <%- include('users-list', {
+        users,
+        error,
+        success: typeof success !== 'undefined' ? success : null,
+        isTeamlead: typeof isTeamlead !== 'undefined' ? isTeamlead : false,
+        isAdmin: typeof isAdmin !== 'undefined' ? isAdmin : false,
+      }) %>
+    </div>
+  </div>
+
+  <footer class="rh-modal-page-foot">
+    <button
+      type="button"
+      class="rh-profile-pill rh-modal-create-btn"
+      hx-get="/users/new-modal"
+      hx-target="#modal-body"
+      hx-swap="innerHTML"
+    >
+      Create user
+    </button>
+  </footer>
+</div>
+
+<script>
+  document.body.addEventListener('users-changed', function () {
+    htmx.ajax('GET', '/users/list-modal', { target: '#users-list-wrap', swap: 'innerHTML' });
+  });
+</script>

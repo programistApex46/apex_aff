@@ -1,0 +1,10 @@
+<%- include('../../partials/layout', { pageTitle: 'Edit user', pageIcon: 'pencil' }) %>
+
+    <div class="mb-6">
+      <h1 class="rh-page-title mb-2">Edit user</h1>
+      <p class="rh-subtitle">Update account details for <%= userStage(formUser) %>.</p>
+    </div>
+
+    <%- include('_form', { formAction: '/admin/users/' + formUser.id, isNew: false, formUser, teamleads, error }) %>
+
+<%- include('../../partials/foot') %>

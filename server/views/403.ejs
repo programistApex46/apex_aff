@@ -1,0 +1,12 @@
+<%- include('partials/layout', { pageTitle: 'Access denied', pageIcon: 'x' }) %>
+
+    <div class="rh-card rh-card-padded text-center py-16 max-w-md mx-auto">
+      <p class="text-6xl font-black mb-4" style="color: var(--rh-accent)">403</p>
+      <p class="rh-secondary text-lg mb-6">Access denied</p>
+      <a href="/" class="btn btn-primary icon-btn">
+        <%- include('partials/icon', { name: 'home', className: 'w-5 h-5' }) %>
+        Home
+      </a>
+    </div>
+
+<%- include('partials/foot') %>

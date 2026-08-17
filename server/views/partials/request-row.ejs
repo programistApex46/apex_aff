@@ -1,0 +1,103 @@
+<%
+  var rowStatus = getCardDisplayStatus(request);
+  var affReady = isAffFieldsComplete(request);
+  var isSubtask = !!request.is_subtask;
+  var isSplitMember = !!request.is_split_member;
+  var rowClasses = [
+    'rh-request-row',
+    'rh-request-row--' + rowStatus.key,
+  ];
+  if (isSubtask) rowClasses.push('rh-request-row--subtask');
+  if (isSplitMember) rowClasses.push('rh-request-row--split-member');
+  if (request.is_split_root) rowClasses.push('rh-request-row--split-root');
+  if (request.split_group_first) rowClasses.push('rh-request-row--split-first');
+  if (request.split_group_middle) rowClasses.push('rh-request-row--split-middle');
+  if (request.split_group_last) rowClasses.push('rh-request-row--split-last');
+%>
+<tr
+  id="request-row-<%= request.id %>"
+  class="<%= rowClasses.join(' ') %>"
+  title="<%= rowStatus.label %>"
+  style="--rh-split-depth: <%= request.nest_depth || 0 %>"
+  data-id="<%= request.id %>"
+  data-status="<%= request.status %>"
+  data-stage="<%= request.buyer_stage %>"
+  data-company="<%= request.buyer_company || '' %>"
+  data-team="<%= formatTeamLabel(request.buyer_team_name) %>"
+  data-geo="<%= request.geo %>"
+  data-language="<%= request.language || '' %>"
+  data-quantity="<%= request.quantity %>"
+  data-remaining-cap="<%= request.available_leads ?? request.quantity %>"
+  data-split-from="<%= request.split_from_id || '' %>"
+  data-split-root="<%= request.split_root_id || request.split_from_id || '' %>"
+  data-is-subtask="<%= isSubtask ? '1' : '0' %>"
+  data-is-split-member="<%= isSplitMember ? '1' : '0' %>"
+  data-funnel="<%= request.funnel || '' %>"
+  data-comment="<%= request.comment || '' %>"
+  data-buyer-id="<%= request.buyer_id %>"
+  data-aff="<%= request.taken_by_stage || '' %>"
+  data-partner="<%= request.partner || '' %>"
+  data-assigned-id="<%= request.taken_by_id || '' %>"
+  data-assignment-aff-ids="<%= request.taken_by_id || '' %>"
+  data-aff-geo="<%= request.aff_geo || '' %>"
+  data-aff-language="<%= request.aff_language || '' %>"
+  data-aff-cap="<%= request.result_quantity ?? '' %>"
+  data-aff-wh="<%= request.aff_wh || '' %>"
+  data-aff-price="<%= request.aff_price || '' %>"
+  data-aff-status="<%= request.result_status || '' %>"
+  data-aggregate-result="<%= request.aggregate_result_status || request.result_status || '' %>"
+  data-created="<%= request.created_at %>"
+<% if (typeof oob !== 'undefined' && oob) { %> hx-swap-oob="<%= isSubtask && request.split_from_id ? 'afterend:#request-row-' + request.split_from_id : 'true' %>"<% } %>>
+  <td class="rh-td-meta">
+    <%- include('request-split-rail', { request }) %>
+    <div class="rh-request-id-cell">
+      <div class="rh-request-id-cell-main">
+        <span class="rh-row-status-tip"><%= rowStatus.label %></span>
+        <span class="rh-request-row-id"><%= request.id %></span>
+        <% if (request.is_split_root) { %>
+          <%- include('request-split-badge', { request, compact: true }) %>
+        <% } %>
+      </div>
+      <% if (isSubtask && request.split_from_id) { %>
+        <div class="rh-request-id-cell-parent">
+          <%- include('request-split-link', { request, compact: true }) %>
+        </div>
+      <% } %>
+    </div>
+  </td>
+  <td class="rh-td-meta rh-muted whitespace-nowrap text-sm"><%= formatRequestDate(request.created_at) %></td>
+  <td class="rh-td-buyer rh-td-org"><%= request.buyer_company || '' %></td>
+  <td class="rh-td-buyer rh-td-team"><%= formatTeamLabel(request.buyer_team_name) %></td>
+  <td class="rh-td-buyer rh-td-stage">
+    <%- include('buyer-stage', { stage: request.buyer_stage, teamName: request.buyer_team_name }) %>
+  </td>
+  <td class="rh-td-buyer rh-td-geo font-medium">
+    <% if (request.status === 'draft' && !request.geo) { %>
+      —
+    <% } else { %>
+      <%- include('geo-table-cell', { geo: request.geo }) %>
+    <% } %>
+  </td>
+  <td class="rh-td-buyer rh-td-language">
+    <%- include('geo-table-language', { language: request.language }) %>
+  </td>
+  <td class="rh-td-buyer"><span class="rh-table-qty"><%= request.status === 'draft' && !request.quantity ? '—' : request.quantity %></span></td>
+  <td class="rh-td-buyer"><%= request.funnel || '' %></td>
+  <td class="rh-td-buyer rh-td-note rh-table-note">
+    <%- include('request-note', { comment: request.comment, requestId: request.id }) %>
+  </td>
+  <td class="rh-td-aff">
+    <% if (request.taken_by_stage) { %>
+      <%- include('aff-user-tag', { stage: request.taken_by_stage, avatarPath: request.taken_by_avatar_path }) %>
+    <% } else { %>
+      <span class="rh-muted">—</span>
+    <% } %>
+  </td>
+  <td class="rh-td-aff"><%= request.partner || '' %></td>
+  <td class="rh-td-aff"><%= request.result_quantity ?? '' %></td>
+  <td class="rh-td-aff"><%= request.aff_wh || '' %></td>
+  <td class="rh-td-aff"><%= request.aff_price || '' %></td>
+  <td class="rh-table-actions">
+    <%- include('request-row-actions', { request, user, affReady, error: typeof error !== 'undefined' ? error : null }) %>
+  </td>
+</tr>

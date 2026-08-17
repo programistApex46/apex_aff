@@ -1,0 +1,64 @@
+<div class="request-aff-edit-modal rh-modal-page">
+  <div class="rh-modal-page-head">
+    <div class="rh-modal-page-head-text">
+      <h3 class="rh-modal-sheet-title">Edit</h3>
+      <p class="rh-muted text-sm mt-1">
+        Request #<%= request.id %> · <%= request.quantity %> lead<%= request.quantity === 1 ? '' : 's' %>
+      </p>
+    </div>
+    <%- include('modal-close') %>
+  </div>
+
+  <form
+    method="post"
+    action="/<%= request.id %>/aff-fields"
+    class="rh-modal-page-form flex flex-col"
+    hx-post="/<%= request.id %>/aff-fields"
+    hx-swap="none"
+  >
+    <div class="rh-modal-page-body">
+      <% if (error) { %>
+        <div role="alert" class="rh-flash rh-flash--error"><span><%= error %></span></div>
+      <% } %>
+
+      <div class="rh-profile-group">
+      <label class="form-control w-full">
+        <span class="label-text mb-1">GEO</span>
+        <input type="text" name="aff_geo" class="input input-bordered input-sm w-full" value="<%= form.aff_geo || '' %>" required />
+      </label>
+      <label class="form-control w-full">
+        <span class="label-text mb-1">Language</span>
+        <input type="text" name="aff_language" class="input input-bordered input-sm w-full" value="<%= form.aff_language || '' %>" placeholder="e.g. EN" required />
+      </label>
+      <label class="form-control w-full">
+        <span class="label-text mb-1">Partner</span>
+        <input type="text" name="partner" class="input input-bordered input-sm w-full" value="<%= form.partner || '' %>" placeholder="e.g. AdNetwork X" required />
+      </label>
+      <label class="form-control w-full">
+        <span class="label-text mb-1">Cap<% if (request.quantity) { %> (max <%= request.quantity %>)<% } %></span>
+        <input type="number" name="result_quantity" class="input input-bordered input-sm w-full" min="0" step="1" value="<%= form.result_quantity ?? '' %>" required />
+      </label>
+      <label class="form-control w-full">
+        <span class="label-text mb-1">Wh</span>
+        <input type="text" name="aff_wh" class="input input-bordered input-sm w-full" value="<%= form.aff_wh || '' %>" placeholder="e.g. 9-18" required />
+      </label>
+      <label class="form-control w-full">
+        <span class="label-text mb-1">Price</span>
+        <input type="text" name="aff_price" class="input input-bordered input-sm w-full" value="<%= form.aff_price || '' %>" placeholder="e.g. $12" required />
+      </label>
+      </div>
+    </div>
+
+    <footer class="rh-modal-page-foot">
+      <button type="submit" class="rh-profile-pill">Save</button>
+      <button type="button" class="rh-profile-text-action" onclick="if (window.modal) window.modal.close()">Cancel</button>
+      <button
+        type="button"
+        class="rh-profile-text-action rh-profile-text-action--danger"
+        hx-get="/<%= request.id %>/release-modal"
+        hx-target="#modal-body"
+        hx-swap="innerHTML"
+      >Release task</button>
+    </footer>
+  </form>
+</div>

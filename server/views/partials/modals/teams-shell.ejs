@@ -1,0 +1,39 @@
+<div class="teams-modal-shell rh-modal-page">
+  <div class="rh-modal-page-head">
+    <div class="rh-modal-page-head-text">
+      <h3 class="rh-modal-sheet-title">Teams</h3>
+      <p class="rh-muted text-sm mt-1">Separate teams for buyer/tl and aff users.</p>
+    </div>
+    <%- include('modal-close') %>
+  </div>
+
+  <div class="rh-modal-page-body">
+    <%- include('modal-search', { id: 'teams-modal-search', placeholder: 'Search teams' }) %>
+
+    <div id="teams-list-wrap">
+      <%- include('teams-list', {
+        teams,
+        error,
+        success: typeof success !== 'undefined' ? success : null,
+      }) %>
+    </div>
+  </div>
+
+  <footer class="rh-modal-page-foot">
+    <button
+      type="button"
+      class="rh-profile-pill rh-modal-create-btn"
+      hx-get="/teams/new-modal"
+      hx-target="#modal-body"
+      hx-swap="innerHTML"
+    >
+      Create team
+    </button>
+  </footer>
+</div>
+
+<script>
+  document.body.addEventListener('teams-changed', function () {
+    htmx.ajax('GET', '/teams/list-modal', { target: '#teams-list-wrap', swap: 'innerHTML' });
+  });
+</script>

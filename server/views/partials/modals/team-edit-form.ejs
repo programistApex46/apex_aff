@@ -1,0 +1,47 @@
+<div class="team-form-modal rh-modal-page">
+  <div class="rh-modal-page-head">
+    <div class="rh-modal-page-head-text">
+      <h3 class="rh-modal-sheet-title">Edit team</h3>
+      <p class="rh-muted text-sm mt-1"><%= team.name %></p>
+    </div>
+    <%- include('modal-close') %>
+  </div>
+
+  <form
+    method="post"
+    action="/teams/<%= team.id %>"
+    class="rh-modal-page-form"
+    hx-post="/teams/<%= team.id %>"
+    hx-target="#modal-body"
+    hx-swap="innerHTML"
+  >
+    <div class="rh-modal-page-body">
+      <% if (error) { %>
+        <div role="alert" class="rh-flash rh-flash--error"><span><%= error %></span></div>
+      <% } %>
+
+      <div class="rh-profile-group">
+      <label class="form-control w-full">
+        <span class="label-text mb-1">Type</span>
+        <input type="text" class="input input-bordered w-full input-sm" value="<%= team.kind === 'aff' ? 'Aff' : 'Buyer / tl' %>" disabled />
+      </label>
+
+      <label class="form-control w-full">
+        <span class="label-text mb-1">Name</span>
+        <input type="text" name="name" class="input input-bordered w-full input-sm" value="<%= team.name || '' %>" required />
+      </label>
+      </div>
+    </div>
+
+    <footer class="rh-modal-page-foot">
+      <button type="submit" class="rh-profile-pill">Save</button>
+      <button
+        type="button"
+        class="rh-profile-text-action"
+        hx-get="/teams/modal"
+        hx-target="#modal-body"
+        hx-swap="innerHTML"
+      >Back</button>
+    </footer>
+  </form>
+</div>

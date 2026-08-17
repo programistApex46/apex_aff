@@ -1,0 +1,62 @@
+<%- include('../partials/layout', { pageTitle: 'New request', pageIcon: 'plus' }) %>
+
+    <div class="mb-6">
+      <h1 class="rh-page-title mb-2">New request</h1>
+      <p class="rh-subtitle">Fill in the buyer fields. Affs will be notified automatically.</p>
+    </div>
+
+    <% if (error) { %>
+      <div role="alert" class="rh-flash rh-flash--error max-w-md"><span><%= error %></span></div>
+    <% } %>
+
+    <form method="post" action="/" class="rh-card rh-form-card flex flex-col gap-4">
+      <label class="form-control w-full">
+        <span class="label-text mb-1">Stage</span>
+        <input type="text" class="input input-bordered w-full" value="<%= userStage(user) %>" disabled />
+      </label>
+      <label class="form-control w-full">
+        <span class="label-text mb-1">GEO</span>
+        <select id="geo" name="geo" class="select select-bordered w-full" onchange="toggleGeoOther()">
+          <option value="">Select…</option>
+          <% commonGeos.forEach(function(g) { %>
+            <option value="<%= g %>" <%= form.geo === g ? 'selected' : '' %>><%= g %></option>
+          <% }) %>
+          <option value="__other__" <%= form.geo === '__other__' ? 'selected' : '' %>>Other</option>
+        </select>
+      </label>
+      <div id="geo-other-field" class="form-control w-full" style="display: none;">
+        <span class="label-text mb-1">Other GEO</span>
+        <input type="text" name="geo_other" class="input input-bordered w-full" value="<%= form.geo_other || '' %>" placeholder="e.g. IT" />
+      </div>
+      <label class="form-control w-full">
+        <span class="label-text mb-1">Cap</span>
+        <input type="number" name="quantity" class="input input-bordered w-full" min="1" step="1" value="<%= form.quantity || '' %>" required />
+      </label>
+      <label class="form-control w-full">
+        <span class="label-text mb-1">Funnel</span>
+        <input type="text" name="funnel" class="input input-bordered w-full" value="<%= form.funnel || '' %>" placeholder="e.g. Main" />
+      </label>
+      <label class="form-control w-full">
+        <span class="label-text mb-1">Note <span class="rh-muted">(optional)</span></span>
+        <textarea name="comment" class="textarea textarea-bordered w-full" rows="3"><%= form.comment || '' %></textarea>
+      </label>
+      <div class="flex gap-2 mt-2">
+        <button type="submit" class="btn btn-primary flex-1">Create</button>
+        <a href="/" class="btn btn-ghost btn-square" title="Cancel">
+          <%- include('../partials/icon', { name: 'x', className: 'w-5 h-5' }) %>
+        </a>
+      </div>
+    </form>
+
+    <script>
+      function toggleGeoOther() {
+        var geo = document.getElementById('geo').value;
+        var field = document.getElementById('geo-other-field');
+        var input = field.querySelector('input');
+        if (geo === '__other__') { field.style.display = ''; input.required = true; }
+        else { field.style.display = 'none'; input.required = false; }
+      }
+      toggleGeoOther();
+    </script>
+
+<%- include('../partials/foot') %>

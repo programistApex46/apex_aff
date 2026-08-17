@@ -1,0 +1,10 @@
+<div
+  id="requests-sse"
+  class="rh-has-mobile-cards"
+  hx-ext="sse"
+  sse-connect="/events"
+  sse-swap="request-updated"
+  hx-swap="none"
+>
+  <%- include('_list', { requests, user, statusBadgeClass, totalCount, filteredCount, filters, filterOptions, hasActiveFilters, sort, sortToggleUrl, sortToggleListUrl, isSortActive, clearListUrl, pagination, paginationUrl, paginationListUrl }) %>
+</div>

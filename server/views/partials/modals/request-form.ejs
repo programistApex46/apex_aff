@@ -1,0 +1,142 @@
+<div class="request-form-modal rh-modal-page">
+  <div class="rh-modal-page-head">
+    <div class="rh-modal-page-head-text">
+      <h3 class="rh-modal-sheet-title"><%= typeof isDraft !== 'undefined' && isDraft ? 'Continue request' : 'New request' %></h3>
+      <% if (typeof isDraft !== 'undefined' && isDraft) { %>
+        <p class="rh-muted text-sm mt-1">You have an unfinished draft. Complete the form to send it.</p>
+      <% } else { %>
+        <p class="rh-muted text-sm mt-1 rh-form-hint">Closing before submit saves your progress as a draft.</p>
+      <% } %>
+    </div>
+    <button type="button" class="rh-modal-close" id="request-form-close" title="Save draft & close" aria-label="Close">
+      <%- include('../icon', { name: 'x', className: 'w-5 h-5' }) %>
+    </button>
+  </div>
+
+  <form
+    id="request-create-form"
+    method="post"
+    action="/"
+    class="rh-modal-page-form"
+    hx-post="/"
+    hx-target="#modal-body"
+    hx-swap="innerHTML"
+  >
+    <div class="rh-modal-page-body">
+      <% if (error) { %>
+        <div role="alert" class="rh-flash rh-flash--error"><span><%= error %></span></div>
+      <% } %>
+
+      <% if (form.draft_id) { %>
+        <input type="hidden" name="draft_id" value="<%= form.draft_id %>" />
+      <% } %>
+      <div class="rh-profile-group">
+      <label class="form-control w-full">
+        <span class="label-text mb-1">Stage</span>
+        <input type="text" class="input input-bordered w-full input-sm" value="<%= userStage(user) %>" disabled />
+      </label>
+      <label class="form-control w-full">
+        <span class="label-text mb-1">GEO</span>
+        <select id="geo" name="geo" class="select select-bordered select-sm w-full" onchange="toggleGeoOther()">
+          <option value="">Select…</option>
+          <% commonGeos.forEach(function(g) { %>
+            <option value="<%= g %>" <%= form.geo === g ? 'selected' : '' %>><%= g %></option>
+          <% }) %>
+          <option value="__other__" <%= form.geo === '__other__' ? 'selected' : '' %>>Other</option>
+        </select>
+      </label>
+      <div id="geo-other-field" class="form-control w-full" style="display: none;">
+        <span class="label-text mb-1">Other GEO</span>
+        <input type="text" name="geo_other" class="input input-bordered w-full input-sm" value="<%= form.geo_other || '' %>" placeholder="e.g. IT" />
+      </div>
+      <label class="form-control w-full">
+        <span class="label-text mb-1">Language</span>
+        <input type="text" name="language" class="input input-bordered w-full input-sm" value="<%= form.language || '' %>" placeholder="e.g. EN" />
+      </label>
+      <label class="form-control w-full">
+        <span class="label-text mb-1">Cap</span>
+        <input type="number" name="quantity" class="input input-bordered w-full input-sm" min="1" step="1" value="<%= form.quantity || '' %>" required />
+      </label>
+      <label class="form-control w-full">
+        <span class="label-text mb-1">Funnel</span>
+        <input type="text" name="funnel" class="input input-bordered w-full input-sm" value="<%= form.funnel || '' %>" placeholder="e.g. Main" />
+      </label>
+      <label class="form-control w-full">
+        <span class="label-text mb-1">Note <span class="rh-muted">(optional)</span></span>
+        <textarea name="comment" class="textarea textarea-bordered w-full textarea-sm" rows="3"><%= form.comment || '' %></textarea>
+      </label>
+      </div>
+    </div>
+
+    <footer class="rh-modal-page-foot">
+      <button type="submit" class="rh-profile-pill"><%= typeof isDraft !== 'undefined' && isDraft ? 'Send request' : 'Create' %></button>
+    </footer>
+  </form>
+</div>
+
+<script>
+  function toggleGeoOther() {
+    var geo = document.getElementById('geo').value;
+    var field = document.getElementById('geo-other-field');
+    if (!field) return;
+    var input = field.querySelector('input');
+    if (geo === '__other__') { field.style.display = ''; input.required = true; }
+    else { field.style.display = 'none'; input.required = false; }
+  }
+  toggleGeoOther();
+
+  (function () {
+    var form = document.getElementById('request-create-form');
+    if (!form) return;
+
+    function hasProgress() {
+      var geo = form.querySelector('[name=geo]').value;
+      var qty = form.querySelector('[name=quantity]').value;
+      var funnel = form.querySelector('[name=funnel]').value.trim();
+      var comment = form.querySelector('[name=comment]').value.trim();
+      var geoOther = form.querySelector('[name=geo_other]');
+      var other = geoOther ? geoOther.value.trim() : '';
+      return !!(geo || qty || funnel || comment || other);
+    }
+
+    function saveDraftAndClose() {
+      if (!hasProgress()) {
+        if (window.modal) window.modal.close();
+        return;
+      }
+
+      var data = new URLSearchParams(new FormData(form));
+      data.set('intent', 'draft');
+
+      fetch('/', {
+        method: 'POST',
+        body: data.toString(),
+        headers: {
+          'HX-Request': 'true',
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        credentials: 'same-origin',
+      }).finally(function () {
+        if (window.modal) window.modal.close();
+        if (typeof window.refreshRequestsList === 'function') window.refreshRequestsList();
+      });
+    }
+
+    var closeBtn = document.getElementById('request-form-close');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        saveDraftAndClose();
+      });
+    }
+
+    var modalEl = document.getElementById('modal');
+    if (modalEl) {
+      modalEl.addEventListener('cancel', function (e) {
+        if (!document.querySelector('.request-form-modal')) return;
+        e.preventDefault();
+        saveDraftAndClose();
+      });
+    }
+  })();
+</script>

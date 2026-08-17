@@ -1,0 +1,43 @@
+<%
+  var activeColumn = sort.isDefault ? 'created_at' : sort.column;
+  var activeDir = sort.dir;
+  var activePerPage = typeof pagination !== 'undefined' ? pagination.perPage : 50;
+  var defaultPerPage = 50;
+%>
+<form
+  method="get"
+  action="/"
+  class="rh-sort-form"
+  id="requests-sort"
+  onsubmit="return false"
+>
+  <div class="rh-filter-field<%= activeColumn !== 'created_at' ? ' rh-filter-field--active' : '' %>">
+    <label class="label-text" for="sort-column">Sort by</label>
+    <select id="sort-column" name="sort" class="select select-bordered select-sm w-full">
+      <% cardSortOptions.forEach(function(option) { %>
+        <option value="<%= option.key %>"<%= activeColumn === option.key ? ' selected' : '' %>><%= option.label %></option>
+      <% }) %>
+    </select>
+  </div>
+
+  <div class="rh-filter-field<%= activeDir !== 'desc' ? ' rh-filter-field--active' : '' %>">
+    <label class="label-text" for="sort-dir">Order</label>
+    <select id="sort-dir" name="dir" class="select select-bordered select-sm w-full">
+      <option value="desc"<%= activeDir === 'desc' ? ' selected' : '' %>>Descending</option>
+      <option value="asc"<%= activeDir === 'asc' ? ' selected' : '' %>>Ascending</option>
+    </select>
+  </div>
+
+  <div class="rh-filter-field<%= activePerPage !== defaultPerPage ? ' rh-filter-field--active' : '' %>">
+    <label class="label-text" for="sort-per-page">Per page</label>
+    <select id="sort-per-page" name="per_page" class="select select-bordered select-sm w-full">
+      <% perPageOptions.forEach(function(option) { %>
+        <option value="<%= option.value %>"<%= activePerPage === option.value ? ' selected' : '' %>><%= option.label %></option>
+      <% }) %>
+    </select>
+  </div>
+
+  <div class="rh-filter-actions" id="requests-clear-sort-wrap"<% if (sort.isDefault && activePerPage === defaultPerPage) { %> hidden<% } %>>
+    <button type="button" class="btn btn-sm rh-clear-filters-btn" id="requests-clear-sort">Reset</button>
+  </div>
+</form>

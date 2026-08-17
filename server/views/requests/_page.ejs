@@ -1,0 +1,109 @@
+<div hidden data-rh-page="requests" data-rh-title="Requests · Request Hub"></div>
+
+    <div class="rh-mobile-search" id="rh-mobile-search" data-no-tl-swipe data-no-desk-swipe>
+      <div class="rh-mobile-search-top">
+        <div class="rh-mobile-filters-wrap">
+          <button
+            type="button"
+            class="rh-mobile-filters-btn rh-glass-surface<%= typeof hasActiveFilters !== 'undefined' && hasActiveFilters ? ' is-active' : '' %>"
+            id="rh-mobile-filters-btn"
+            aria-expanded="false"
+            aria-controls="rh-mobile-filters-sheet"
+            aria-label="Search and filters"
+          >
+            <%- include('../partials/icon', { name: 'sliders', className: 'w-4 h-4' }) %>
+          </button>
+          <span class="rh-mobile-filters-badge" id="rh-mobile-filters-badge"<%= typeof hasActiveFilters === 'undefined' || !hasActiveFilters ? ' hidden' : '' %>></span>
+        </div>
+        <div class="rh-mobile-sort-wrap">
+          <button
+            type="button"
+            class="rh-mobile-sort-btn rh-glass-surface<%= typeof sort !== 'undefined' && !sort.isDefault ? ' is-active' : '' %>"
+            id="rh-mobile-sort-btn"
+            aria-expanded="false"
+            aria-controls="rh-mobile-sort-sheet"
+            aria-label="Sort"
+          >
+            <%- include('../partials/icon', { name: 'arrow-up-down', className: 'w-4 h-4' }) %>
+          </button>
+          <span class="rh-mobile-sort-badge" id="rh-mobile-sort-badge"<%= typeof sort === 'undefined' || sort.isDefault ? ' hidden' : '' %>></span>
+        </div>
+      </div>
+    </div>
+    <div id="rh-mobile-filters-sheet" class="rh-mobile-filters-sheet" hidden role="dialog" aria-modal="true" aria-label="Search and filters">
+      <div class="rh-mobile-filters-scrim" data-rh-motion-backdrop aria-hidden="true"></div>
+      <div class="rh-mobile-filters-panel" data-rh-motion-panel>
+      <div class="rh-mobile-filters-sheet-head">
+        <span class="rh-mobile-filters-sheet-title">Search and filters</span>
+        <button type="button" class="rh-mobile-filters-sheet-close" id="rh-mobile-filters-close" title="Close" aria-label="Close">
+          <%- include('../partials/icon', { name: 'x', className: 'w-5 h-5' }) %>
+        </button>
+      </div>
+      <div class="rh-mobile-filters-sheet-search">
+        <label class="sr-only" for="requests-search-mobile">Search</label>
+        <div class="rh-mobile-search-field">
+          <span class="rh-mobile-search-icon" aria-hidden="true">
+            <%- include('../partials/icon', { name: 'search', className: 'w-4 h-4' }) %>
+          </span>
+          <input
+            type="search"
+            id="requests-search-mobile"
+            class="rh-mobile-search-input rh-requests-search-input"
+            placeholder="Search requests"
+            autocomplete="off"
+            enterkeyhint="search"
+          >
+          <button type="button" class="rh-mobile-search-clear" id="requests-search-mobile-clear" hidden aria-label="Clear">
+            <%- include('../partials/icon', { name: 'x', className: 'w-4 h-4' }) %>
+          </button>
+        </div>
+      </div>
+      <div class="rh-mobile-filters-sheet-body" id="rh-mobile-filters-body"></div>
+      <div class="rh-mobile-filters-sheet-foot">
+          <button type="button" class="rh-mobile-filters-done" id="rh-mobile-filters-done">Apply</button>
+      </div>
+      </div>
+    </div>
+
+    <div id="rh-mobile-sort-sheet" class="rh-mobile-sort-sheet" hidden role="dialog" aria-modal="true" aria-label="Sort">
+      <div class="rh-mobile-sort-scrim" data-rh-motion-backdrop aria-hidden="true"></div>
+      <div class="rh-mobile-sort-panel" data-rh-motion-panel>
+        <div class="rh-mobile-sort-sheet-head">
+          <span class="rh-mobile-sort-sheet-title">Sort</span>
+          <button type="button" class="rh-mobile-sort-sheet-close" id="rh-mobile-sort-close" title="Close" aria-label="Close">
+            <%- include('../partials/icon', { name: 'x', className: 'w-5 h-5' }) %>
+          </button>
+        </div>
+        <div class="rh-mobile-sort-sheet-body" id="rh-mobile-sort-body"></div>
+        <div class="rh-mobile-sort-sheet-foot">
+          <button type="button" class="rh-mobile-sort-done" id="rh-mobile-sort-done">Apply</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="requests-empty" class="rh-card rh-card-padded text-center"<% if (totalCount > 0) { %> hidden<% } %>>
+      <div class="rh-icon-box rh-icon-box-lg mx-auto mb-4">
+        <%- include('../partials/icon', { name: 'clipboard', className: 'w-7 h-7' }) %>
+      </div>
+      <p class="rh-secondary text-lg mb-1">No requests yet</p>
+      <p class="rh-muted text-sm">New requests will appear here.</p>
+      <% if (user && user.role === 'buyer') { %>
+        <button
+          type="button"
+          class="btn btn-create-request btn-sm mt-5 icon-btn"
+          onclick="openRequestCreate()"
+        >
+          <%- include('../partials/icon', { name: 'plus', className: 'w-4 h-4' }) %>
+          New request
+        </button>
+      <% } %>
+    </div>
+
+    <%- include('_toolbar', { user, totalCount, filters, filterOptions, hasActiveFilters, sort, cardSortOptions, perPageOptions, pagination, clearListUrl }) %>
+
+    <div id="requests-main">
+      <%- include('_main', { user, requests, statusBadgeClass, totalCount, filteredCount, filters, filterOptions, hasActiveFilters, sort, cardSortOptions, sortToggleUrl, sortToggleListUrl, isSortActive, clearListUrl, pagination, paginationUrl, paginationListUrl }) %>
+    </div>
+
+    <script src="/js/requests-sse.js"></script>
+    <script src="/js/requests-table-resize.js"></script>

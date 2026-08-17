@@ -1,0 +1,63 @@
+    <div class="rh-table-panel">
+      <div class="rh-table-scroll">
+      <table class="rh-data-table rh-users-table">
+        <thead>
+          <tr>
+            <%- include('../../partials/table_th', { icon: 'user', label: 'Stage' }) %>
+            <%- include('../../partials/table_th', { icon: 'status', label: 'Role' }) %>
+            <%- include('../../partials/table_th', { icon: 'hash', label: 'Telegram' }) %>
+            <%- include('../../partials/table_th', { icon: 'users', label: 'Team lead' }) %>
+            <%- include('../../partials/table_th', { icon: 'status', label: 'Status' }) %>
+            <th class="rh-th rh-th-right"><span>Actions</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% users.forEach(function(u) { %>
+            <tr class="<%= u.is_active ? '' : 'opacity-40' %>">
+              <td class="font-medium"><%= userStage(u) %></td>
+              <td class="capitalize"><%= u.role %></td>
+              <td>
+                <% if (u.telegram_chat_id) { %>
+                  <%= u.telegram_chat_id %>
+                <% } else { %>
+                  <span class="rh-table-empty">-</span>
+                <% } %>
+              </td>
+              <td>
+                <% if (u.role === 'buyer' && u.team_lead_stage) { %>
+                  <%= u.team_lead_stage %>
+                <% } else { %>
+                  <span class="rh-table-empty">-</span>
+                <% } %>
+              </td>
+              <td>
+                <% if (u.is_active) { %>
+                  <span class="rh-status-done">Active</span>
+                <% } else { %>
+                  <span class="rh-muted">Inactive</span>
+                <% } %>
+              </td>
+              <td class="rh-table-actions">
+                <a href="/admin/users/<%= u.id %>/edit" class="btn btn-ghost btn-xs btn-square" title="Edit">
+                  <%- include('../../partials/icon', { name: 'pencil', className: 'w-3.5 h-3.5' }) %>
+                </a>
+                <% if (u.is_active) { %>
+                  <form method="post" action="/admin/users/<%= u.id %>/delete" class="inline">
+                    <button type="submit" class="btn btn-ghost btn-xs btn-square text-error" title="Deactivate">
+                      <%- include('../../partials/icon', { name: 'trash', className: 'w-3.5 h-3.5' }) %>
+                    </button>
+                  </form>
+                <% } else { %>
+                  <form method="post" action="/admin/users/<%= u.id %>/restore" class="inline">
+                    <button type="submit" class="btn btn-ghost btn-xs btn-square text-success" title="Restore">
+                      <%- include('../../partials/icon', { name: 'restore', className: 'w-3.5 h-3.5' }) %>
+                    </button>
+                  </form>
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+      </div>
+    </div>

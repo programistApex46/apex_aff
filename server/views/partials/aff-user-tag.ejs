@@ -1,0 +1,9 @@
+<% if (stage) { %>
+  <span class="rh-aff-user">
+    <%- include('user-avatar', {
+      user: { stage: stage, avatar_path: typeof avatarPath !== 'undefined' ? avatarPath : null },
+      avatarClass: typeof avatarClass !== 'undefined' ? avatarClass : 'rh-avatar-sm'
+    }) %>
+    <span class="rh-aff-user-name"><%= stage %></span>
+  </span>
+<% } %>

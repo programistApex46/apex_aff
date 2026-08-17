@@ -1,0 +1,21 @@
+<%
+  var assignments = request.assignments || [];
+  var active = assignments.filter(function (a) { return a.status !== 'cancelled'; });
+  var progress = request.progress || {};
+  var isCompact = typeof compact !== 'undefined' && compact;
+%>
+<% if (progress.isSplit || active.length > 1 || progress.available > 0) { %>
+  <div class="rh-request-progress<%= isCompact ? ' rh-request-progress--compact' : '' %>" title="<%= formatRequestProgress(request) %>">
+    <div class="rh-request-progress-bar" aria-hidden="true">
+      <% if (progress.total > 0) { %>
+        <span class="rh-request-progress-seg rh-request-progress-seg--done" style="width: <%= Math.round((progress.done / progress.total) * 100) %>%"></span>
+        <span class="rh-request-progress-seg rh-request-progress-seg--active" style="width: <%= Math.round((progress.inProgress / progress.total) * 100) %>%"></span>
+      <% } %>
+    </div>
+    <p class="rh-request-progress-text">
+      <% if (progress.done > 0) { %><span><%= progress.done %>/<%= progress.total %> done</span><% } %>
+      <% if (progress.inProgress > 0) { %><span><%= progress.inProgress %> in progress</span><% } %>
+      <% if (progress.available > 0) { %><span><%= progress.available %> available</span><% } %>
+    </p>
+  </div>
+<% } %>
