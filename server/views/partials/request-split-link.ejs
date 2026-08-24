@@ -1,30 +1,28 @@
 <%
-  var parentId = request.split_from_id;
-  if (!parentId) return;
+  var rootId = request.split_root_id || request.split_from_id;
+  if (!rootId || rootId === request.id) return;
 
-  var rootId = request.split_root_id;
-  var showRoot = rootId && rootId !== parentId;
   var compact = typeof compact !== 'undefined' && compact;
-  var title = 'Split from #' + parentId;
-  if (showRoot) title += ' · main #' + rootId;
+  var inline = typeof inline !== 'undefined' && inline;
+  var title = 'Split from #' + rootId;
 %>
-<span class="rh-request-split-from-label<%= compact ? ' rh-request-split-from-label--compact' : '' %>">
-  <% if (!compact) { %><span class="rh-request-split-from-text">from</span><% } else { %><span class="rh-request-split-from-arrow" aria-hidden="true">↳</span><% } %>
+<% if (inline) { %>
   <a
-    href="#request-row-<%= parentId %>"
-    class="rh-request-split-link<%= compact ? ' rh-request-split-link--compact' : '' %>"
-    data-rh-split-target="<%= parentId %>"
+    href="#request-row-<%= rootId %>"
+    class="rh-request-split-link rh-request-split-link--inline"
+    data-rh-split-target="<%= rootId %>"
     title="<%= title %>"
-    aria-label="Go to parent request #<%= parentId %>"
-  >#<%= parentId %></a>
-  <% if (showRoot && !compact) { %>
-    <span class="rh-request-split-link-sep" aria-hidden="true">·</span>
+    aria-label="Go to original request #<%= rootId %>"
+  >← #<%= rootId %></a>
+<% } else { %>
+  <span class="rh-request-split-from-label<%= compact ? ' rh-request-split-from-label--compact' : '' %>">
+    <% if (!compact) { %><span class="rh-request-split-from-text">from</span><% } else { %><span class="rh-request-split-from-arrow" aria-hidden="true">↳</span><% } %>
     <a
       href="#request-row-<%= rootId %>"
-      class="rh-request-split-link rh-request-split-link--root"
+      class="rh-request-split-link<%= compact ? ' rh-request-split-link--compact' : '' %>"
       data-rh-split-target="<%= rootId %>"
-      title="Go to main request #<%= rootId %>"
-      aria-label="Go to main request #<%= rootId %>"
-    >main #<%= rootId %></a>
-  <% } %>
-</span>
+      title="<%= title %>"
+      aria-label="Go to original request #<%= rootId %>"
+    >#<%= rootId %></a>
+  </span>
+<% } %>

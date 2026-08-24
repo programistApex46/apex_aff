@@ -10,15 +10,16 @@
   if (isSubtask) rowClasses.push('rh-request-row--subtask');
   if (isSplitMember) rowClasses.push('rh-request-row--split-member');
   if (request.is_split_root) rowClasses.push('rh-request-row--split-root');
-  if (request.split_group_first) rowClasses.push('rh-request-row--split-first');
-  if (request.split_group_middle) rowClasses.push('rh-request-row--split-middle');
-  if (request.split_group_last) rowClasses.push('rh-request-row--split-last');
+  var rowTitle = rowStatus.label;
+  if (request.is_split_root && request.split_group_size > 1) {
+    rowTitle += ' · Split · ' + request.split_group_size + ' parts';
+    if (request.split_aff_count >= 2) rowTitle += ' · ' + request.split_aff_count + ' affs';
+  }
 %>
 <tr
   id="request-row-<%= request.id %>"
   class="<%= rowClasses.join(' ') %>"
-  title="<%= rowStatus.label %>"
-  style="--rh-split-depth: <%= request.nest_depth || 0 %>"
+  title="<%= rowTitle %>"
   data-id="<%= request.id %>"
   data-status="<%= request.status %>"
   data-stage="<%= request.buyer_stage %>"
@@ -47,22 +48,26 @@
   data-aff-status="<%= request.result_status || '' %>"
   data-aggregate-result="<%= request.aggregate_result_status || request.result_status || '' %>"
   data-created="<%= request.created_at %>"
-<% if (typeof oob !== 'undefined' && oob) { %> hx-swap-oob="<%= isSubtask && request.split_from_id ? 'afterend:#request-row-' + request.split_from_id : 'true' %>"<% } %>>
-  <td class="rh-td-meta">
-    <%- include('request-split-rail', { request }) %>
+<%
+  var _insertIds = typeof insertIds !== 'undefined' ? insertIds : [];
+  var _oobInsert = typeof oob !== 'undefined' && oob
+    && _insertIds.indexOf(request.id) !== -1
+    && isSubtask
+    && request.split_insert_after_id;
+  var _oobSwap = typeof oob !== 'undefined' && oob
+    ? (_oobInsert ? 'afterend:#request-row-' + request.split_insert_after_id : 'outerHTML')
+    : null;
+%>
+<% if (_oobSwap) { %> hx-swap-oob="<%= _oobSwap %>"<% } %>>
+  <td class="rh-td-meta rh-td-id">
     <div class="rh-request-id-cell">
+      <span class="rh-row-status-tip"><%= rowStatus.label %></span>
       <div class="rh-request-id-cell-main">
-        <span class="rh-row-status-tip"><%= rowStatus.label %></span>
         <span class="rh-request-row-id"><%= request.id %></span>
-        <% if (request.is_split_root) { %>
-          <%- include('request-split-badge', { request, compact: true }) %>
+        <% if (isSubtask && request.split_root_id) { %>
+          <%- include('request-split-link', { request, inline: true }) %>
         <% } %>
       </div>
-      <% if (isSubtask && request.split_from_id) { %>
-        <div class="rh-request-id-cell-parent">
-          <%- include('request-split-link', { request, compact: true }) %>
-        </div>
-      <% } %>
     </div>
   </td>
   <td class="rh-td-meta rh-muted whitespace-nowrap text-sm"><%= formatRequestDate(request.created_at) %></td>
@@ -96,7 +101,7 @@
   <td class="rh-td-aff"><%= request.partner || '' %></td>
   <td class="rh-td-aff"><%= request.result_quantity ?? '' %></td>
   <td class="rh-td-aff"><%= request.aff_wh || '' %></td>
-  <td class="rh-td-aff"><%= request.aff_price || '' %></td>
+  <td class="rh-td-aff"><%= formatAffPrice(request.aff_price) %></td>
   <td class="rh-table-actions">
     <%- include('request-row-actions', { request, user, affReady, error: typeof error !== 'undefined' ? error : null }) %>
   </td>

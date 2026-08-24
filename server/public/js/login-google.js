@@ -2,11 +2,27 @@
   var resizeTimer;
 
   function getGoogleButtonWidth(container) {
-    var width = Math.floor(container.getBoundingClientRect().width);
-    if (!width) {
-      width = Math.floor(container.clientWidth);
+    var card = container.closest('.rh-login-card');
+    if (card) {
+      var style = window.getComputedStyle(card);
+      var padding =
+        (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.paddingRight) || 0);
+      var inner = Math.floor(card.clientWidth - padding);
+      if (inner > 0) {
+        return Math.min(400, Math.max(200, inner - 2));
+      }
     }
-    return Math.min(400, Math.max(200, width));
+
+    var host = document.getElementById('google-signin-button');
+    var measureEl = host || container;
+    var width = Math.floor(measureEl.clientWidth);
+
+    if (!width) {
+      width = Math.floor(measureEl.getBoundingClientRect().width);
+    }
+
+    width = Math.max(200, width - 2);
+    return Math.min(400, width);
   }
 
   function getGoogleButtonTheme() {
@@ -24,6 +40,8 @@
 
     var width = getGoogleButtonWidth(container);
     buttonHost.innerHTML = '';
+    buttonHost.style.removeProperty('width');
+    buttonHost.style.removeProperty('max-width');
     google.accounts.id.renderButton(buttonHost, {
       type: 'standard',
       size: 'large',
@@ -34,9 +52,17 @@
     });
   }
 
+  function scheduleGoogleSignInRender() {
+    renderGoogleSignInButton();
+    window.requestAnimationFrame(function () {
+      renderGoogleSignInButton();
+      window.setTimeout(renderGoogleSignInButton, 250);
+    });
+  }
+
   function waitForGoogleSignIn() {
     if (window.google && google.accounts && google.accounts.id) {
-      renderGoogleSignInButton();
+      scheduleGoogleSignInRender();
       return;
     }
 
@@ -45,7 +71,7 @@
       attempts += 1;
       if (window.google && google.accounts && google.accounts.id) {
         window.clearInterval(timer);
-        renderGoogleSignInButton();
+        scheduleGoogleSignInRender();
         return;
       }
       if (attempts > 200) {
@@ -58,5 +84,8 @@
   window.addEventListener('resize', function () {
     window.clearTimeout(resizeTimer);
     resizeTimer = window.setTimeout(renderGoogleSignInButton, 150);
+  });
+  window.addEventListener('orientationchange', function () {
+    window.setTimeout(scheduleGoogleSignInRender, 300);
   });
 })();

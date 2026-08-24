@@ -580,9 +580,10 @@ function validateAffFields(body) {
   };
 }
 
-function renderRow(res, { request, user, error, oob }) {
+function renderRow(res, { request, user, error, oob, insertIds }) {
   return res.render('partials/request-rows', {
     request,
+    insertIds: insertIds || [],
     user,
     error: error || null,
     statusBadgeClass,
@@ -590,9 +591,11 @@ function renderRow(res, { request, user, error, oob }) {
   });
 }
 
-function renderRows(res, { requests, user, error, oob }) {
+function renderRows(res, { requests, user, error, oob, removeIds, insertIds }) {
   return res.render('partials/htmx-oob-rows', {
     requests,
+    removeIds: removeIds || [],
+    insertIds: insertIds || [],
     user,
     error: error || null,
     statusBadgeClass,
@@ -958,14 +961,17 @@ router.post('/:id/take', requireRole('aff'), (req, res) => {
     broadcastRequestUpdated(remainderRequest);
   }
 
+  const insertIds = remainderRequest ? [remainderRequest.id] : [];
+
   if (wantsPartial(req)) {
     res.set('HX-Trigger', 'modal-close');
     const rows = remainderRequest ? [request, remainderRequest] : [request];
-    return renderRows(res, { requests: rows, user, oob: true });
+    return renderRows(res, { requests: rows, insertIds, user, oob: true });
   }
 
   return renderRows(res, {
     requests: remainderRequest ? [request, remainderRequest] : [request],
+    insertIds,
     user,
     oob: true,
   });
@@ -997,9 +1003,9 @@ router.post('/:id/release', requireRole('aff'), (req, res) => {
   }
 
   const result = cancelAssignment(db, requestId, user.id);
-  const updated = getRequestById(db, requestId, user);
 
   if (!result.ok) {
+    const updated = getRequestById(db, requestId, user);
     if (wantsPartial(req)) {
       res.set('HX-Retarget', '#modal-body');
       res.set('HX-Reswap', 'innerHTML');
@@ -1016,14 +1022,25 @@ router.post('/:id/release', requireRole('aff'), (req, res) => {
     });
   }
 
-  broadcastRequestUpdated(updated);
+  const rows = [];
+  const removeIds = [];
+
+  if (result.mergedInto) {
+    const merged = getRequestById(db, result.mergedInto, user);
+    if (merged) rows.push(merged);
+    if (result.deleted) removeIds.push(requestId);
+    if (merged) broadcastRequestUpdated(merged);
+  } else {
+    const updated = getRequestById(db, requestId, user);
+    if (updated) rows.push(updated);
+    if (updated) broadcastRequestUpdated(updated);
+  }
 
   if (wantsPartial(req)) {
     res.set('HX-Trigger', 'modal-close');
-    return renderRows(res, { requests: [updated], user, oob: true });
   }
 
-  return renderRow(res, { request: updated, user, oob: true });
+  return renderRows(res, { requests: rows, removeIds, user, oob: true });
 });
 
 router.get('/:id/complete', requireRole('aff'), (req, res) => {
@@ -1222,10 +1239,12 @@ router.post('/:id/aff-fields', requireRole('aff'), (req, res) => {
     broadcastRequestUpdated(remainderRequest);
   }
 
+  const insertIds = remainderRequest ? [remainderRequest.id] : [];
+
   if (wantsPartial(req)) {
     res.set('HX-Trigger', 'modal-close');
     const rows = remainderRequest ? [updated, remainderRequest] : [updated];
-    return renderRows(res, { requests: rows, user, oob: true });
+    return renderRows(res, { requests: rows, insertIds, user, oob: true });
   }
 
   res.redirect(HOME);

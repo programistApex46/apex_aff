@@ -3,14 +3,14 @@
 <div class="rh-has-mobile-cards">
   <div class="rh-table-panel rh-table-desktop">
     <div class="rh-table-scroll">
-      <table class="rh-data-table">
+      <table class="rh-data-table rh-teams-table">
         <thead>
           <tr>
-            <%- include('../table_th', { label: 'Name' }) %>
-            <%- include('../table_th', { label: 'Type' }) %>
-            <%- include('../table_th', { label: 'Members' }) %>
-            <%- include('../table_th', { label: 'Status' }) %>
-            <th class="rh-th rh-th-right"><span>Actions</span></th>
+            <%- include('../table_th', { icon: 'users', label: 'Name' }) %>
+            <%- include('../table_th', { icon: 'status', label: 'Type' }) %>
+            <%- include('../table_th', { icon: 'hash', label: 'Members' }) %>
+            <%- include('../table_th', { icon: 'status', label: 'Status' }) %>
+            <th class="rh-th rh-th-right rh-th-actions-col"><span>Actions</span></th>
           </tr>
         </thead>
         <tbody>
@@ -40,40 +40,42 @@
                 <% } %>
               </td>
               <td class="rh-table-actions">
-                <button
-                  type="button"
-                  class="btn btn-ghost btn-xs btn-square"
-                  title="Edit"
-                  hx-get="/teams/<%= t.id %>/edit-modal"
-                  hx-target="#modal-body"
-                  hx-swap="innerHTML"
-                >
-                  <%- include('../icon', { name: 'pencil', className: 'w-3.5 h-3.5' }) %>
-                </button>
-                <% if (t.is_active) { %>
+                <div class="rh-table-action-group">
                   <button
                     type="button"
-                    class="btn btn-ghost btn-xs btn-square text-error"
-                    title="Deactivate"
-                    hx-post="/teams/<%= t.id %>/delete"
-                    hx-target="#modal-body"
-                    hx-swap="innerHTML"
-                    hx-confirm="Deactivate this team?"
-                  >
-                    <%- include('../icon', { name: 'trash', className: 'w-3.5 h-3.5' }) %>
-                  </button>
-                <% } else { %>
-                  <button
-                    type="button"
-                    class="btn btn-ghost btn-xs btn-square text-success"
-                    title="Restore"
-                    hx-post="/teams/<%= t.id %>/restore"
+                    class="btn btn-xs btn-square icon-btn rh-table-action-btn rh-table-action-edit"
+                    title="Edit"
+                    hx-get="/teams/<%= t.id %>/edit-modal"
                     hx-target="#modal-body"
                     hx-swap="innerHTML"
                   >
-                    <%- include('../icon', { name: 'restore', className: 'w-3.5 h-3.5' }) %>
+                    <%- include('../icon', { name: 'pencil', className: 'w-4 h-4' }) %>
                   </button>
-                <% } %>
+                  <% if (t.is_active) { %>
+                    <button
+                      type="button"
+                      class="btn btn-xs btn-square icon-btn rh-table-action-btn text-error"
+                      title="Deactivate"
+                      hx-post="/teams/<%= t.id %>/delete"
+                      hx-target="#modal-body"
+                      hx-swap="innerHTML"
+                      hx-confirm="Deactivate this team?"
+                    >
+                      <%- include('../icon', { name: 'trash', className: 'w-4 h-4' }) %>
+                    </button>
+                  <% } else { %>
+                    <button
+                      type="button"
+                      class="btn btn-xs btn-square icon-btn rh-table-action-btn rh-table-action-complete"
+                      title="Restore"
+                      hx-post="/teams/<%= t.id %>/restore"
+                      hx-target="#modal-body"
+                      hx-swap="innerHTML"
+                    >
+                      <%- include('../icon', { name: 'restore', className: 'w-4 h-4' }) %>
+                    </button>
+                  <% } %>
+                </div>
               </td>
             </tr>
           <% }) %>

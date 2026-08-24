@@ -18,9 +18,6 @@
   if (isSubtask) cardClasses.push('rh-request-card--subtask');
   if (isSplitMember) cardClasses.push('rh-request-card--split-member');
   if (request.is_split_root) cardClasses.push('rh-request-card--split-root');
-  if (request.split_group_first) cardClasses.push('rh-request-card--split-first');
-  if (request.split_group_middle) cardClasses.push('rh-request-card--split-middle');
-  if (request.split_group_last) cardClasses.push('rh-request-card--split-last');
   var _formatTeamLabel = typeof formatTeamLabel === 'function'
     ? formatTeamLabel
     : function (name) { return name || ''; };
@@ -32,7 +29,6 @@
 <article
   id="request-card-<%= request.id %>"
   class="<%= cardClasses.join(' ') %>"
-  style="--rh-split-depth: <%= request.nest_depth || 0 %>"
   data-id="<%= request.id %>"
   data-status="<%= request.status %>"
   data-stage="<%= request.buyer_stage %>"
@@ -59,26 +55,27 @@
   data-aff-price="<%= request.aff_price || '' %>"
   data-aff-status="<%= request.result_status || '' %>"
   data-created="<%= request.created_at %>"
-<% if (typeof oob !== 'undefined' && oob) { %> hx-swap-oob="<%= isSubtask && request.split_from_id ? 'afterend:#request-card-' + request.split_from_id : 'true' %>"<% } %>>
+<%
+  var _insertIds = typeof insertIds !== 'undefined' ? insertIds : [];
+  var _oobInsert = typeof oob !== 'undefined' && oob
+    && _insertIds.indexOf(request.id) !== -1
+    && isSubtask
+    && request.split_insert_after_id;
+  var _oobSwap = typeof oob !== 'undefined' && oob
+    ? (_oobInsert ? 'afterend:#request-card-' + request.split_insert_after_id : 'outerHTML')
+    : null;
+%>
+<% if (_oobSwap) { %> hx-swap-oob="<%= _oobSwap %>"<% } %>>
   <header class="rh-request-card-head">
-    <% if (isSplitMember) { %>
-      <span class="rh-split-rail rh-split-rail--card<%= isSubtask ? ' rh-split-rail--branch' : ' rh-split-rail--root' %><% if (request.split_group_last) { %> rh-split-rail--last<% } %>" aria-hidden="true"></span>
-    <% } %>
     <span class="rh-request-card-id">
       #<%= request.id %>
-      <% if (isSubtask && request.split_from_id) { %>
-        <span class="rh-request-card-split-from">
-          <%- include('request-split-link', { request, compact: false }) %>
-        </span>
+      <% if (isSubtask && request.split_root_id) { %>
+        <%- include('request-split-link', { request, inline: true }) %>
       <% } %>
     </span>
     <span class="rh-request-card-head-meta">
       <% if (request.is_split_root) { %>
         <%- include('request-split-badge', { request }) %>
-      <% } else if (isSubtask && request.split_group_size > 1) { %>
-        <span class="rh-split-part-label" title="Part <%= (request.split_group_index || 0) + 1 %> of <%= request.split_group_size %>">
-          Part <%= (request.split_group_index || 0) + 1 %>/<%= request.split_group_size %>
-        </span>
       <% } %>
       <span class="badge badge-sm <%= cardStatus.badge %> rh-request-card-badge"><%= cardStatus.label %></span>
     </span>
@@ -181,7 +178,7 @@
           </span>
           <span class="rh-request-card-kv">
             <span class="rh-request-card-inline-label">Price</span>
-            <span class="rh-request-card-kv-value"><%= request.aff_price || '—' %></span>
+            <span class="rh-request-card-kv-value"><%= request.aff_price ? formatAffPrice(request.aff_price) : '—' %></span>
           </span>
         </div>
         <% } %>

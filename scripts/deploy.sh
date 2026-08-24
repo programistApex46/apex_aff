@@ -63,7 +63,7 @@ else
   echo "WARN: theme.css looks old — check rsync path"
 fi
 
-if grep -q 'col-widths-v11' server/public/js/requests-table-resize.js; then
+if grep -q 'col-widths-v12' server/public/js/requests-table-resize.js; then
   echo "OK: requests-table-resize.js is up to date"
 else
   echo "WARN: requests-table-resize.js looks old"

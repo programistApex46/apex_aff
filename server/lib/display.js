@@ -86,7 +86,7 @@ function getCardDisplayStatus(request) {
   }
 
   if (request.status === 'in_progress') {
-    if (request.is_partial || request.has_remainder) {
+    if (request.is_partial) {
       return { key: 'in_progress_partial', label: 'In progress · partial', badge: 'badge-progress' };
     }
     return { key: 'in_progress', label: 'In progress', badge: 'badge-progress' };
@@ -144,6 +144,14 @@ function buyerStageTeamClass(teamName) {
   return 'rh-buyer-stage--default';
 }
 
+function formatAffPrice(price) {
+  if (price === null || price === undefined) return '';
+  const raw = String(price).trim();
+  if (!raw) return '';
+  const value = raw.replace(/\s*\$\s*$/, '');
+  return `${value}$`;
+}
+
 function truncateNote(text, maxLen = 6) {
   if (!text) {
     return { preview: '', isLong: false, full: '' };
@@ -169,6 +177,7 @@ module.exports = {
   truncateNote,
   formatTeamLabel,
   buyerStageTeamClass,
+  formatAffPrice,
   TEAM_LABELS,
   GEO_FLAG_CODES,
   GEO_NAMES,

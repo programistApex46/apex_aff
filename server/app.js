@@ -19,6 +19,7 @@ const {
   truncateNote,
   formatTeamLabel,
   buyerStageTeamClass,
+  formatAffPrice,
 } = require('./lib/display');
 const {
   isAffFieldsComplete,
@@ -55,6 +56,7 @@ app.locals.showCompletedDate = showCompletedDate;
 app.locals.truncateNote = truncateNote;
 app.locals.formatTeamLabel = formatTeamLabel;
 app.locals.buyerStageTeamClass = buyerStageTeamClass;
+app.locals.formatAffPrice = formatAffPrice;
 app.locals.formatRequestProgress = formatRequestProgress;
 app.locals.canAffClaimRequest = canAffClaimRequest;
 app.locals.isAffFieldsComplete = isAffFieldsComplete;
@@ -74,6 +76,7 @@ app.use((req, res, next) => {
   res.locals.truncateNote = truncateNote;
   res.locals.formatTeamLabel = formatTeamLabel;
   res.locals.buyerStageTeamClass = buyerStageTeamClass;
+  res.locals.formatAffPrice = formatAffPrice;
   res.locals.formatRequestProgress = formatRequestProgress;
   res.locals.canAffClaimRequest = canAffClaimRequest;
   res.locals.isAffFieldsComplete = isAffFieldsComplete;

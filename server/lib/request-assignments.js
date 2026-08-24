@@ -367,6 +367,27 @@ function countSplitTreeMembers(db, rootId) {
   return Number(row?.c || 0) + 1;
 }
 
+function getSplitInsertAfterId(db, rootId, requestId) {
+  if (!rootId || !requestId || rootId === requestId) return null;
+
+  const row = db
+    .prepare(`
+      WITH RECURSIVE tree(id) AS (
+        SELECT id FROM requests WHERE id = ?
+        UNION ALL
+        SELECT r.id
+        FROM requests r
+        INNER JOIN tree t ON r.split_from_id = t.id
+      )
+      SELECT MAX(id) AS max_id
+      FROM tree
+      WHERE id < ?
+    `)
+    .get(rootId, requestId);
+
+  return row?.max_id || rootId;
+}
+
 function countSplitAffs(db, rootId) {
   ensureAssignmentSchema(db);
   const row = db
@@ -439,13 +460,26 @@ function enrichRequest(db, request) {
   const split_children = getSplitChildren(db, request.id);
   const has_remainder = hasOpenRemainderDescendant(db, request.id);
   const is_subtask = !!request.split_from_id;
-  const is_split_root = !is_subtask && (split_children.length > 0 || has_remainder);
-  const split_root_id = is_subtask
-    ? getSplitRootId(db, request)
-    : (is_split_root ? request.id : null);
+
+  let split_tree_root_id = null;
+  if (is_subtask) {
+    split_tree_root_id = getSplitRootId(db, request);
+  } else if (split_children.length > 0 || has_remainder) {
+    split_tree_root_id = request.id;
+  }
+
+  const split_tree_size = split_tree_root_id
+    ? countSplitTreeMembers(db, split_tree_root_id)
+    : 1;
+  const is_split_tree_root = split_tree_root_id === request.id && split_tree_size > 1;
+  const split_root_id = is_subtask ? split_tree_root_id : (is_split_tree_root ? request.id : null);
+  const is_split_root = is_split_tree_root;
   const available_leads = getAvailableLeads(request);
-  const split_group_size = is_split_root ? countSplitTreeMembers(db, request.id) : null;
-  const split_aff_count = is_split_root ? countSplitAffs(db, request.id) : null;
+  const split_group_size = is_split_tree_root ? split_tree_size : null;
+  const split_aff_count = is_split_tree_root ? countSplitAffs(db, request.id) : null;
+  const split_insert_after_id = is_subtask && split_tree_root_id
+    ? getSplitInsertAfterId(db, split_tree_root_id, request.id)
+    : null;
 
   return {
     ...request,
@@ -453,12 +487,15 @@ function enrichRequest(db, request) {
     available_leads,
     split_children,
     split_root_id,
+    split_insert_after_id,
+    split_tree_root_id,
+    split_tree_size,
     has_remainder,
-    is_partial: request.status === 'in_progress' && has_remainder,
+    is_partial: request.status === 'in_progress' && is_split_tree_root,
     is_subtask,
     is_split_root,
-    is_split_member: is_subtask || is_split_root,
-    is_split: has_remainder || is_subtask,
+    is_split_member: is_subtask || is_split_tree_root,
+    is_split: is_split_tree_root || is_subtask,
     split_group_size,
     split_aff_count,
     has_available_cap: available_leads > 0,
@@ -494,25 +531,40 @@ function nestRequestsForDisplay(requests) {
   const placed = new Set();
   const result = [];
 
-  function appendWithDescendants(request, depth) {
+  function collectAllDescendants(requestId) {
+    const out = [];
+
+    function walk(id) {
+      for (const child of childMap.get(id) || []) {
+        out.push(child);
+        walk(child.id);
+      }
+    }
+
+    walk(requestId);
+    return out.sort((a, b) => a.id - b.id);
+  }
+
+  function appendSplitGroup(request) {
     if (placed.has(request.id)) return;
-    result.push({ ...request, is_subtask: depth > 0, nest_depth: depth });
+    result.push({ ...request, is_subtask: false, nest_depth: 0 });
     placed.add(request.id);
-    for (const child of childMap.get(request.id) || []) {
-      appendWithDescendants(child, depth + 1);
+
+    for (const descendant of collectAllDescendants(request.id)) {
+      result.push({ ...descendant, is_subtask: true, nest_depth: 1 });
+      placed.add(descendant.id);
     }
   }
 
   for (const request of requests) {
     if (placed.has(request.id)) continue;
     if (request.split_from_id && byId.has(request.split_from_id)) continue;
-    appendWithDescendants(request, 0);
+    appendSplitGroup(request);
   }
 
   for (const request of requests) {
     if (!placed.has(request.id)) {
-      const depth = request.split_from_id && byId.has(request.split_from_id) ? 1 : 0;
-      appendWithDescendants(request, depth);
+      appendSplitGroup(request);
     }
   }
 
@@ -593,6 +645,39 @@ function takeRequest(db, requestId, affId, capTaken) {
   })();
 }
 
+function findReleaseMergeTarget(db, request) {
+  const direct = db
+    .prepare(`
+      SELECT id
+      FROM requests
+      WHERE split_from_id = ?
+        AND status = 'new'
+        AND taken_by_id IS NULL
+      ORDER BY id ASC
+      LIMIT 1
+    `)
+    .get(request.id);
+  if (direct) return direct.id;
+
+  if (request.split_from_id) {
+    const sibling = db
+      .prepare(`
+        SELECT id
+        FROM requests
+        WHERE split_from_id = ?
+          AND status = 'new'
+          AND taken_by_id IS NULL
+          AND id != ?
+        ORDER BY id ASC
+        LIMIT 1
+      `)
+      .get(request.split_from_id, request.id);
+    if (sibling) return sibling.id;
+  }
+
+  return null;
+}
+
 function releaseRequest(db, requestId, affId) {
   ensureAssignmentSchema(db);
 
@@ -602,6 +687,62 @@ function releaseRequest(db, requestId, affId) {
     if (request.taken_by_id !== affId) return { ok: false, error: 'Not your request' };
     if (request.status !== 'in_progress') {
       return { ok: false, error: 'Cannot release this request' };
+    }
+
+    const qty = Number(request.quantity);
+    const mergeTargetId = findReleaseMergeTarget(db, request);
+
+    if (mergeTargetId && qty > 0) {
+      db.prepare(`
+        UPDATE requests
+        SET quantity = quantity + ?,
+            remaining_cap = remaining_cap + ?,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).run(qty, qty, mergeTargetId);
+
+      const otherChildren = db
+        .prepare(`
+          SELECT COUNT(*) AS c
+          FROM requests
+          WHERE split_from_id = ? AND id != ?
+        `)
+        .get(requestId, mergeTargetId).c;
+
+      if (otherChildren > 0) {
+        db.prepare(`
+          UPDATE requests
+          SET split_from_id = ?
+          WHERE split_from_id = ? AND id != ?
+        `).run(mergeTargetId, requestId, mergeTargetId);
+
+        db.prepare(`
+          UPDATE requests
+          SET split_from_id = NULL
+          WHERE id = ?
+        `).run(mergeTargetId);
+      } else if (request.split_from_id) {
+        db.prepare(`
+          UPDATE requests
+          SET split_from_id = ?
+          WHERE id = ?
+        `).run(request.split_from_id, mergeTargetId);
+      } else {
+        db.prepare(`
+          UPDATE requests
+          SET split_from_id = NULL
+          WHERE id = ?
+        `).run(mergeTargetId);
+      }
+
+      db.prepare('DELETE FROM requests WHERE id = ?').run(requestId);
+
+      return {
+        ok: true,
+        requestId,
+        mergedInto: mergeTargetId,
+        deleted: true,
+      };
     }
 
     db.prepare(`

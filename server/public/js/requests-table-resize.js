@@ -5,16 +5,16 @@
   }
   window.__rhRequestsTableResizeBound = true;
 
-  var STORAGE_KEY = 'rh-requests-col-widths-v11';
-  var LEGACY_STORAGE_KEYS = ['rh-requests-col-widths-v10', 'rh-requests-col-widths-v9', 'rh-requests-col-widths-v8', 'rh-requests-col-widths-v7', 'rh-requests-col-widths-v6', 'rh-requests-col-widths-v5', 'rh-requests-col-widths-v4', 'rh-requests-col-widths-v3', 'rh-requests-col-widths-v2', 'rh-requests-col-widths'];
+  var STORAGE_KEY = 'rh-requests-col-widths-v14';
+  var LEGACY_STORAGE_KEYS = ['rh-requests-col-widths-v13', 'rh-requests-col-widths-v12', 'rh-requests-col-widths-v11', 'rh-requests-col-widths-v10', 'rh-requests-col-widths-v9', 'rh-requests-col-widths-v8', 'rh-requests-col-widths-v7', 'rh-requests-col-widths-v6', 'rh-requests-col-widths-v5', 'rh-requests-col-widths-v4', 'rh-requests-col-widths-v3', 'rh-requests-col-widths-v2', 'rh-requests-col-widths'];
   var MIN_WIDTH = 40;
   var DESKTOP_QUERY = '(min-width: 768px)';
   var DEFAULT_WIDTHS = {
-    id: 72,
+    id: 88,
     created_at: 104,
-    company: 48,
+    company: 56,
     team: 50,
-    stage: 52,
+    stage: 57,
     geo: 112,
     language: 40,
     quantity: 52,
@@ -35,6 +35,12 @@
     }
     if (widths.id < DEFAULT_WIDTHS.id) {
       widths.id = DEFAULT_WIDTHS.id;
+    }
+    if (widths.stage && widths.stage < DEFAULT_WIDTHS.stage) {
+      widths.stage = DEFAULT_WIDTHS.stage;
+    }
+    if (widths.company && widths.company < DEFAULT_WIDTHS.company) {
+      widths.company = DEFAULT_WIDTHS.company;
     }
     return widths;
   }

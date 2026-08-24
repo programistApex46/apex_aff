@@ -6,18 +6,18 @@
       <table class="rh-data-table rh-users-table">
         <thead>
           <tr>
-            <%- include('../table_th', { label: 'Stage' }) %>
-            <%- include('../table_th', { label: 'Email' }) %>
+            <%- include('../table_th', { icon: 'user', label: 'Stage' }) %>
+            <%- include('../table_th', { icon: 'hash', label: 'Email' }) %>
             <% if (!isTeamlead) { %>
-              <%- include('../table_th', { label: 'Role' }) %>
+              <%- include('../table_th', { icon: 'status', label: 'Role' }) %>
             <% } %>
-            <%- include('../table_th', { label: 'Company' }) %>
-            <%- include('../table_th', { label: 'Telegram' }) %>
+            <%- include('../table_th', { icon: 'hash', label: 'Company' }) %>
+            <%- include('../table_th', { icon: 'hash', label: 'Telegram' }) %>
             <% if (!isTeamlead) { %>
-              <%- include('../table_th', { label: 'Team' }) %>
+              <%- include('../table_th', { icon: 'users', label: 'Team' }) %>
             <% } %>
-            <%- include('../table_th', { label: 'Status' }) %>
-            <th class="rh-th rh-th-right"><span>Actions</span></th>
+            <%- include('../table_th', { icon: 'status', label: 'Status' }) %>
+            <th class="rh-th rh-th-right rh-th-actions-col"><span>Actions</span></th>
           </tr>
         </thead>
         <tbody>
@@ -70,40 +70,42 @@
                 <% } %>
               </td>
               <td class="rh-table-actions">
-                <button
-                  type="button"
-                  class="btn btn-ghost btn-xs btn-square"
-                  title="Edit"
-                  hx-get="/users/<%= u.id %>/edit-modal"
-                  hx-target="#modal-body"
-                  hx-swap="innerHTML"
-                >
-                  <%- include('../icon', { name: 'pencil', className: 'w-3.5 h-3.5' }) %>
-                </button>
-                <% if (u.is_active) { %>
+                <div class="rh-table-action-group">
                   <button
                     type="button"
-                    class="btn btn-ghost btn-xs btn-square text-error"
-                    title="Deactivate"
-                    hx-post="/users/<%= u.id %>/delete"
-                    hx-target="#modal-body"
-                    hx-swap="innerHTML"
-                    hx-confirm="Deactivate this user?"
-                  >
-                    <%- include('../icon', { name: 'trash', className: 'w-3.5 h-3.5' }) %>
-                  </button>
-                <% } else { %>
-                  <button
-                    type="button"
-                    class="btn btn-ghost btn-xs btn-square text-success"
-                    title="Restore"
-                    hx-post="/users/<%= u.id %>/restore"
+                    class="btn btn-xs btn-square icon-btn rh-table-action-btn rh-table-action-edit"
+                    title="Edit"
+                    hx-get="/users/<%= u.id %>/edit-modal"
                     hx-target="#modal-body"
                     hx-swap="innerHTML"
                   >
-                    <%- include('../icon', { name: 'restore', className: 'w-3.5 h-3.5' }) %>
+                    <%- include('../icon', { name: 'pencil', className: 'w-4 h-4' }) %>
                   </button>
-                <% } %>
+                  <% if (u.is_active) { %>
+                    <button
+                      type="button"
+                      class="btn btn-xs btn-square icon-btn rh-table-action-btn text-error"
+                      title="Deactivate"
+                      hx-post="/users/<%= u.id %>/delete"
+                      hx-target="#modal-body"
+                      hx-swap="innerHTML"
+                      hx-confirm="Deactivate this user?"
+                    >
+                      <%- include('../icon', { name: 'trash', className: 'w-4 h-4' }) %>
+                    </button>
+                  <% } else { %>
+                    <button
+                      type="button"
+                      class="btn btn-xs btn-square icon-btn rh-table-action-btn rh-table-action-complete"
+                      title="Restore"
+                      hx-post="/users/<%= u.id %>/restore"
+                      hx-target="#modal-body"
+                      hx-swap="innerHTML"
+                    >
+                      <%- include('../icon', { name: 'restore', className: 'w-4 h-4' }) %>
+                    </button>
+                  <% } %>
+                </div>
               </td>
             </tr>
           <% }) %>

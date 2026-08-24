@@ -1317,15 +1317,26 @@
   }
 
   function insertItemNode(item, container) {
-    var splitFrom = item.dataset.splitFrom;
-    if (splitFrom) {
-      var prefix = item.id.indexOf('request-card-') === 0 ? 'request-card-' : 'request-row-';
-      var parent = document.getElementById(prefix + splitFrom);
-      if (parent && parent.parentNode) {
-        parent.insertAdjacentElement('afterend', item);
+    var splitRoot = item.dataset.splitRoot;
+    if (splitRoot && item.dataset.isSubtask === '1') {
+      var isCard = item.id.indexOf('request-card-') === 0;
+      var selector = isCard
+        ? '.rh-request-card[data-split-root="' + splitRoot + '"]'
+        : 'tr[data-split-root="' + splitRoot + '"]';
+      var group = Array.prototype.slice.call(document.querySelectorAll(selector));
+      if (group.length) {
+        group[group.length - 1].insertAdjacentElement('afterend', item);
+        return;
+      }
+
+      var prefix = isCard ? 'request-card-' : 'request-row-';
+      var root = document.getElementById(prefix + splitRoot);
+      if (root && root.parentNode) {
+        root.insertAdjacentElement('afterend', item);
         return;
       }
     }
+
     container.appendChild(item);
   }
 
