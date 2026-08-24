@@ -44,6 +44,7 @@ function ensureAssignmentSchema(db) {
   migrateFromAssignmentPoolOnce(db);
   repairLegacyPartialTakesOnce(db);
   repairParentStaysSplitModelOnce(db);
+  flattenNestedSplitChildrenOnce(db);
 }
 
 function splitMetaGet(db, key) {
@@ -319,6 +320,35 @@ function recomputeSplitTreeRoot(db, rootId) {
         updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
   `).run(totalQty, poolCap, rootId);
+}
+
+function flattenNestedSplitChildrenOnce(db) {
+  if (splitMetaGet(db, 'flatten_split_children_v1') === 'done') return;
+
+  const flatten = db.transaction(() => {
+    const nested = db
+      .prepare(`
+        SELECT c.id, c.split_from_id
+        FROM requests c
+        INNER JOIN requests p ON c.split_from_id = p.id
+        WHERE p.split_from_id IS NOT NULL
+      `)
+      .all();
+
+    for (const row of nested) {
+      const rootId = getSplitRootId(db, { split_from_id: row.split_from_id });
+      if (!rootId || rootId === row.id) continue;
+      db.prepare(`
+        UPDATE requests
+        SET split_from_id = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).run(rootId, row.id);
+    }
+
+    splitMetaSet(db, 'flatten_split_children_v1', 'done');
+  });
+
+  flatten();
 }
 
 function migrateFromAssignmentPoolOnce(db) {
@@ -650,12 +680,13 @@ function getSplitTreeInWorkCap(db, rootId) {
         FROM requests r
         INNER JOIN tree t ON r.split_from_id = t.id
       )
-      SELECT COALESCE(SUM(COALESCE(r.result_quantity, r.quantity)), 0) AS total
+      SELECT COALESCE(SUM(r.quantity), 0) AS total
       FROM requests r
       INNER JOIN tree t ON r.id = t.id
       WHERE r.id != ?
         AND r.status = 'in_progress'
         AND r.taken_by_id IS NOT NULL
+        AND r.split_from_id IS NOT NULL
     `)
     .get(rootId, rootId);
   return Number(row?.total || 0);
@@ -757,6 +788,7 @@ function enrichRequest(db, request) {
     is_partial: request.status === 'in_progress' && is_split_tree_root,
     is_subtask,
     is_split_root,
+    is_split_tree_root,
     is_split_member: is_subtask || is_split_tree_root,
     is_split: is_split_tree_root || is_subtask,
     split_group_size: null,
@@ -901,8 +933,11 @@ function takeRequest(db, requestId, affId, capTaken) {
     if (request.status === 'draft') return { ok: false, error: 'Request is not available yet' };
     if (request.status === 'done') return { ok: false, error: 'Request is already completed' };
     if (request.taken_by_id) return { ok: false, error: 'Request is already taken' };
+    if (request.split_from_id) {
+      return { ok: false, error: 'Only the original request can be taken or split' };
+    }
 
-    const rootId = resolveSplitRootId(db, request);
+    const rootId = request.id;
     const root = db.prepare('SELECT * FROM requests WHERE id = ?').get(rootId);
     const poolRequest = root?.status === 'new' && !root?.taken_by_id ? root : request;
     const total = getAvailableLeads(poolRequest);
@@ -1045,10 +1080,11 @@ function updateAffFields(db, requestId, affId, fields) {
       };
     }
 
-    if (affCap < currentQty) {
-      const returned = currentQty - affCap;
-      const rootId = request.split_from_id ? resolveSplitRootId(db, request) : null;
+    if (request.split_from_id && affCap !== currentQty) {
+      return { ok: false, error: 'Cap cannot be changed on a split task' };
+    }
 
+    if (affCap < currentQty) {
       db.prepare(`
         UPDATE requests
         SET quantity = ?,
@@ -1056,16 +1092,6 @@ function updateAffFields(db, requestId, affId, fields) {
             updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
       `).run(affCap, affCap, requestId);
-
-      if (rootId && rootId !== requestId) {
-        db.prepare(`
-          UPDATE requests
-          SET remaining_cap = COALESCE(remaining_cap, quantity) + ?,
-              updated_at = CURRENT_TIMESTAMP
-          WHERE id = ?
-        `).run(returned, rootId);
-        split = true;
-      }
     }
 
     db.prepare(`

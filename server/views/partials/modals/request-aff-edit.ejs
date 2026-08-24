@@ -36,7 +36,12 @@
       </label>
       <label class="form-control w-full">
         <span class="label-text mb-1">Cap<% if (request.quantity) { %> (max <%= request.quantity %>)<% } %></span>
-        <input type="number" name="result_quantity" class="input input-bordered input-sm w-full" min="0" step="1" value="<%= form.result_quantity ?? '' %>" required />
+        <% if (request.split_from_id) { %>
+          <input type="number" class="input input-bordered input-sm w-full" value="<%= request.quantity %>" disabled />
+          <input type="hidden" name="result_quantity" value="<%= request.quantity %>" />
+        <% } else { %>
+          <input type="number" name="result_quantity" class="input input-bordered input-sm w-full" min="0" step="1" value="<%= form.result_quantity ?? '' %>" required />
+        <% } %>
       </label>
       <label class="form-control w-full">
         <span class="label-text mb-1">Wh</span>

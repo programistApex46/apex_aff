@@ -4497,46 +4497,177 @@ body.rh-quiz-open {
 }
 
 .rh-request-card--approved,
+.rh-request-row--approved,
+.rh-request-card--rejected,
+.rh-request-row--rejected {
+  --rh-closed-row-bg: var(--rh-surface-2);
+  --rh-closed-row-bg-hover: var(--rh-surface-3);
+}
+
+.rh-request-card--approved,
 .rh-request-row--approved {
   --rh-request-status-color: #22c55e;
-}
-
-.rh-request-row--approved > td {
-  background: color-mix(in srgb, var(--rh-surface-2) 92%, var(--rh-surface));
-  color: color-mix(in srgb, var(--rh-text-muted) 78%, var(--rh-text));
-}
-
-.rh-request-row--approved:hover > td {
-  background: color-mix(in srgb, var(--rh-surface-2) 96%, var(--rh-surface));
-}
-
-.rh-request-row--approved .rh-request-row-id {
-  color: var(--rh-request-status-color);
-}
-
-.rh-request-row--approved .rh-table-actions,
-.rh-request-row--approved .rh-table-actions .btn {
-  opacity: 1;
-}
-
-.rh-request-card--approved {
-  background: color-mix(in srgb, var(--rh-surface-2) 90%, var(--rh-surface));
-  box-shadow: none;
-}
-
-.rh-request-card--approved .rh-request-card-head,
-.rh-request-card--approved .rh-request-card-body,
-.rh-request-card--approved .rh-request-card-foot {
-  color: color-mix(in srgb, var(--rh-text-muted) 78%, var(--rh-text));
-}
-
-.rh-request-card--approved .rh-request-card-id .rh-request-row-id {
-  color: var(--rh-request-status-color);
 }
 
 .rh-request-card--rejected,
 .rh-request-row--rejected {
   --rh-request-status-color: #ef4444;
+}
+
+.rh-data-table tbody tr.rh-request-row--approved > td,
+.rh-data-table tbody tr.rh-request-row--rejected > td {
+  background: var(--rh-closed-row-bg);
+  color: var(--rh-text-muted);
+}
+
+.rh-data-table tbody tr.rh-request-row--approved:hover > td,
+.rh-data-table tbody tr.rh-request-row--rejected:hover > td {
+  background: var(--rh-closed-row-bg-hover);
+}
+
+.rh-request-row--approved .rh-request-row-id,
+.rh-request-row--rejected .rh-request-row-id {
+  color: var(--rh-request-status-color);
+}
+
+.rh-request-row--approved .rh-buyer-stage,
+.rh-request-row--approved .rh-aff-user-name,
+.rh-request-row--approved .rh-table-qty,
+.rh-request-row--approved .rh-table-qty-work,
+.rh-request-row--approved .rh-cap-cell-sep,
+.rh-request-row--approved .rh-geo-cell-text,
+.rh-request-row--approved .rh-geo-language,
+.rh-request-row--approved .rh-note-preview,
+.rh-request-row--approved .rh-split-folder-toggle,
+.rh-request-row--approved .rh-split-folder-count,
+.rh-request-row--approved .rh-split-folder-icon,
+.rh-request-row--approved td:not(.rh-table-actions),
+.rh-request-row--rejected .rh-buyer-stage,
+.rh-request-row--rejected .rh-aff-user-name,
+.rh-request-row--rejected .rh-table-qty,
+.rh-request-row--rejected .rh-table-qty-work,
+.rh-request-row--rejected .rh-cap-cell-sep,
+.rh-request-row--rejected .rh-geo-cell-text,
+.rh-request-row--rejected .rh-geo-language,
+.rh-request-row--rejected .rh-note-preview,
+.rh-request-row--rejected .rh-split-folder-toggle,
+.rh-request-row--rejected .rh-split-folder-count,
+.rh-request-row--rejected .rh-split-folder-icon,
+.rh-request-row--rejected td:not(.rh-table-actions) {
+  color: var(--rh-text-muted);
+}
+
+.rh-request-row--approved .rh-buyer-stage,
+.rh-request-row--rejected .rh-buyer-stage {
+  background: color-mix(in srgb, var(--rh-text-muted) 14%, var(--rh-closed-row-bg));
+  border-color: color-mix(in srgb, var(--rh-text-muted) 22%, transparent);
+  box-shadow: none;
+}
+
+.rh-request-row--approved .rh-table-qty,
+.rh-request-row--approved .rh-table-qty-work,
+.rh-request-row--rejected .rh-table-qty,
+.rh-request-row--rejected .rh-table-qty-work {
+  font-weight: 600;
+}
+
+.rh-request-row--approved .rh-geo-flag,
+.rh-request-row--rejected .rh-geo-flag {
+  opacity: 0.55;
+  filter: grayscale(0.4);
+}
+
+.rh-request-row--approved .rh-aff-user .rh-avatar-sm,
+.rh-request-row--approved .rh-aff-user .rh-avatar-img.rh-avatar-sm,
+.rh-request-row--rejected .rh-aff-user .rh-avatar-sm,
+.rh-request-row--rejected .rh-aff-user .rh-avatar-img.rh-avatar-sm {
+  opacity: 0.65;
+}
+
+.rh-data-table tbody tr.rh-request-row--approved > td.rh-table-actions,
+.rh-data-table tbody tr.rh-request-row--rejected > td.rh-table-actions {
+  position: relative;
+  z-index: 1;
+}
+
+.rh-request-row--approved .rh-table-actions,
+.rh-request-row--rejected .rh-table-actions {
+  position: relative;
+  z-index: 3;
+  isolation: isolate;
+  opacity: 1;
+}
+
+.rh-request-row--approved .rh-table-actions .btn,
+.rh-request-row--approved .rh-table-actions a.btn,
+.rh-request-row--rejected .rh-table-actions .btn,
+.rh-request-row--rejected .rh-table-actions a.btn {
+  position: relative;
+  z-index: 1;
+  opacity: 1;
+}
+
+.rh-request-card--approved .rh-request-card-actions,
+.rh-request-card--rejected .rh-request-card-actions {
+  position: relative;
+  z-index: 2;
+  opacity: 1;
+}
+
+.rh-request-card--approved .rh-request-card-actions .btn,
+.rh-request-card--rejected .rh-request-card-actions .btn {
+  opacity: 1;
+}
+
+.rh-request-card--approved,
+.rh-request-card--rejected {
+  background: var(--rh-closed-row-bg);
+  box-shadow: none;
+}
+
+.rh-request-card--approved .rh-request-card-head,
+.rh-request-card--approved .rh-request-card-body,
+.rh-request-card--approved .rh-request-card-foot,
+.rh-request-card--approved .rh-request-card-kv-value,
+.rh-request-card--approved .rh-request-card-inline-label,
+.rh-request-card--rejected .rh-request-card-head,
+.rh-request-card--rejected .rh-request-card-body,
+.rh-request-card--rejected .rh-request-card-foot,
+.rh-request-card--rejected .rh-request-card-kv-value,
+.rh-request-card--rejected .rh-request-card-inline-label {
+  color: var(--rh-text-muted);
+}
+
+.rh-request-card--approved .rh-request-card-id .rh-request-row-id,
+.rh-request-card--rejected .rh-request-card-id .rh-request-row-id {
+  color: var(--rh-request-status-color);
+}
+
+.rh-request-row--approved.rh-split-folder-edge-first.rh-split-folder-root > td,
+.rh-request-row--approved.rh-split-folder-edge-first.rh-request-row--subtask > td,
+.rh-request-row--approved.rh-request-row--subtask > td,
+.rh-request-row--rejected.rh-split-folder-edge-first.rh-split-folder-root > td,
+.rh-request-row--rejected.rh-split-folder-edge-first.rh-request-row--subtask > td,
+.rh-request-row--rejected.rh-request-row--subtask > td {
+  background: var(--rh-closed-row-bg);
+}
+
+.rh-request-row--approved.rh-split-folder-edge-first > td,
+.rh-request-row--rejected.rh-split-folder-edge-first > td {
+  border-top-color: color-mix(in srgb, var(--rh-border) 88%, transparent);
+}
+
+.rh-request-row--approved.rh-split-folder-edge-last > td,
+.rh-request-row--rejected.rh-split-folder-edge-last > td {
+  border-bottom-color: color-mix(in srgb, var(--rh-border) 88%, transparent);
+}
+
+.rh-request-card--approved.rh-request-card--split-root.rh-split-folder-root,
+.rh-request-card--approved.rh-request-card--subtask,
+.rh-request-card--rejected.rh-request-card--split-root.rh-split-folder-root,
+.rh-request-card--rejected.rh-request-card--subtask {
+  background: var(--rh-closed-row-bg);
+  border-left-color: color-mix(in srgb, var(--rh-text-muted) 28%, transparent);
 }
 
 [data-theme="rh-dark"] .rh-request-card--draft,
@@ -4560,22 +4691,31 @@ body.rh-quiz-open {
 }
 
 [data-theme="rh-dark"] .rh-request-card--approved,
+[data-theme="rh-dark"] .rh-request-row--approved,
+[data-theme="rh-dark"] .rh-request-card--rejected,
+[data-theme="rh-dark"] .rh-request-row--rejected {
+  --rh-closed-row-bg: color-mix(in srgb, var(--rh-surface-2) 88%, var(--rh-surface));
+  --rh-closed-row-bg-hover: color-mix(in srgb, var(--rh-surface-3) 82%, var(--rh-surface-2));
+}
+
+[data-theme="rh-dark"] .rh-request-card--approved,
 [data-theme="rh-dark"] .rh-request-row--approved {
   --rh-request-status-color: #4ade80;
-}
-
-[data-theme="rh-dark"] .rh-request-row--approved > td {
-  background: color-mix(in srgb, var(--rh-surface-2) 84%, var(--rh-surface));
-  color: color-mix(in srgb, var(--rh-text-muted) 88%, var(--rh-text));
-}
-
-[data-theme="rh-dark"] .rh-request-card--approved {
-  background: color-mix(in srgb, var(--rh-surface-2) 82%, var(--rh-surface));
 }
 
 [data-theme="rh-dark"] .rh-request-card--rejected,
 [data-theme="rh-dark"] .rh-request-row--rejected {
   --rh-request-status-color: #f87171;
+}
+
+[data-theme="rh-dark"] .rh-data-table tbody tr.rh-request-row--approved > td,
+[data-theme="rh-dark"] .rh-data-table tbody tr.rh-request-row--rejected > td {
+  color: color-mix(in srgb, var(--rh-text-muted) 92%, var(--rh-text));
+}
+
+[data-theme="rh-dark"] .rh-request-card--approved,
+[data-theme="rh-dark"] .rh-request-card--rejected {
+  background: var(--rh-closed-row-bg);
 }
 
 .rh-request-row-id {
@@ -4966,7 +5106,16 @@ body.rh-quiz-open {
   color: #60a5fa;
 }
 
-.rh-request-row--approved .rh-table-qty-work {
+:root:not([data-theme="rh-dark"]) .rh-request-row--approved,
+:root:not([data-theme="rh-dark"]) .rh-request-row--rejected,
+:root:not([data-theme="rh-dark"]) .rh-request-card--approved,
+:root:not([data-theme="rh-dark"]) .rh-request-card--rejected {
+  --rh-closed-row-bg: #eceef3;
+  --rh-closed-row-bg-hover: #e2e5ec;
+}
+
+.rh-request-row--approved .rh-table-qty-work,
+.rh-request-row--rejected .rh-table-qty-work {
   opacity: 1;
 }
 

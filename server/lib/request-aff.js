@@ -22,8 +22,13 @@ function canAffClaimRequest(request, user) {
     request &&
     request.status === 'new' &&
     !request.taken_by_id &&
+    !request.split_from_id &&
     request.has_available_cap !== false
   );
+}
+
+function isSplitChildRequest(request) {
+  return !!(request && request.split_from_id);
 }
 
 function canAffManageRequest(request, user) {
@@ -55,5 +60,6 @@ module.exports = {
   canAffClaimRequest,
   canAffManageRequest,
   canAffReopenRequest,
+  isSplitChildRequest,
   getActiveAssignmentId,
 };

@@ -1242,6 +1242,15 @@ router.post('/:id/aff-fields', requireRole('aff'), (req, res) => {
   }
 
   const qty = Number(validation.result_quantity);
+  if (request.split_from_id && qty !== Number(request.quantity)) {
+    res.set('HX-Retarget', '#modal-body');
+    res.set('HX-Reswap', 'innerHTML');
+    return res.render('partials/modals/request-aff-edit', {
+      request,
+      form,
+      error: 'Cap cannot be changed on a split task',
+    });
+  }
   if (qty > request.quantity) {
     res.set('HX-Retarget', '#modal-body');
     res.set('HX-Reswap', 'innerHTML');

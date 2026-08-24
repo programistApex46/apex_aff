@@ -43,7 +43,7 @@
   data-assignment-aff-ids="<%= request.taken_by_id || '' %>"
   data-aff-geo="<%= request.aff_geo || '' %>"
   data-aff-language="<%= request.aff_language || '' %>"
-  data-aff-cap="<%= request.result_quantity ?? '' %>"
+  data-aff-cap="<%= (request.split_from_id || request.is_subtask) ? (request.quantity ?? '') : (request.result_quantity ?? '') %>"
   data-aff-wh="<%= request.aff_wh || '' %>"
   data-aff-price="<%= request.aff_price || '' %>"
   data-aff-status="<%= request.result_status || '' %>"
@@ -96,7 +96,7 @@
     <% } %>
   </td>
   <td class="rh-td-aff"><%= request.partner || '' %></td>
-  <td class="rh-td-aff"><%= request.result_quantity ?? '' %></td>
+  <td class="rh-td-aff"><%- include('request-aff-cap-display', { request }) %></td>
   <td class="rh-td-aff"><%= request.aff_wh || '' %></td>
   <td class="rh-td-aff"><%= formatAffPrice(request.aff_price) %></td>
   <td class="rh-table-actions">

@@ -1,13 +1,16 @@
 <%
   var hasTotal = !(request.status === 'draft' && !request.quantity);
+  var isSplitChild = !!(request.split_from_id || request.is_subtask);
   var totalCap = hasTotal ? Number(request.quantity) : null;
   var workCap = 0;
   var showSplit = false;
 
-  if (hasTotal && request.is_split_tree_root && (request.split_tree_size || 0) > 1) {
+  if (isSplitChild && hasTotal) {
+    totalCap = Number(request.quantity ?? 0);
+  } else if (hasTotal && (request.is_split_tree_root || (request.is_split_root && (request.split_group_size || request.split_tree_size || 0) > 1))) {
     workCap = Number(request.split_in_work_cap ?? 0);
     totalCap = Number(request.quantity ?? 0);
-    showSplit = workCap > 0 && totalCap > 0;
+    showSplit = totalCap > 0;
   }
 
   if (!Number.isFinite(workCap) || workCap < 0) workCap = 0;

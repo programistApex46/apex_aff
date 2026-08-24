@@ -1,0 +1,7 @@
+<%
+  var isSplitChild = !!(request.split_from_id || request.is_subtask);
+  var affCap = isSplitChild
+    ? (request.quantity ?? '')
+    : (request.result_quantity ?? '');
+%>
+<%= affCap %>
