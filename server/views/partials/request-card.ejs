@@ -7,7 +7,7 @@
     : require('./server/lib/request-aff');
   var cardStatus = _display.getCardDisplayStatus(request);
   var buyerGeo = request.status === 'draft' && !request.geo ? '—' : (request.geo || '—');
-  var buyerCap = request.status === 'draft' && !request.quantity ? '—' : request.quantity;
+  var showBuyerCapDisplay = !(request.status === 'draft' && !request.quantity);
   var isSubtask = !!request.is_subtask;
   var isSplitMember = !!request.is_split_member;
   var showBuyerMeta = user.role === 'teamlead' || user.role === 'admin' || user.role === 'aff';
@@ -18,6 +18,9 @@
   if (isSubtask) cardClasses.push('rh-request-card--subtask');
   if (isSplitMember) cardClasses.push('rh-request-card--split-member');
   if (request.is_split_root) cardClasses.push('rh-request-card--split-root');
+  if (request.is_split_root && (request.split_group_size || 0) >= 2) {
+    cardClasses.push('rh-split-folder-root');
+  }
   var _formatTeamLabel = typeof formatTeamLabel === 'function'
     ? formatTeamLabel
     : function (name) { return name || ''; };
@@ -29,6 +32,8 @@
 <article
   id="request-card-<%= request.id %>"
   class="<%= cardClasses.join(' ') %>"
+  data-status-label="<%= cardStatus.label %>"
+  data-status-key="<%= cardStatus.key %>"
   data-id="<%= request.id %>"
   data-status="<%= request.status %>"
   data-stage="<%= request.buyer_stage %>"
@@ -40,6 +45,8 @@
   data-split-root="<%= request.split_root_id || request.split_from_id || '' %>"
   data-is-subtask="<%= isSubtask ? '1' : '0' %>"
   data-is-split-member="<%= isSplitMember ? '1' : '0' %>"
+  data-is-split-root="<%= request.is_split_root && (request.split_group_size || 0) >= 2 ? '1' : '0' %>"
+  data-split-group-size="<%= request.split_group_size || '' %>"
   data-assignment-aff-ids="<%= request.taken_by_id || '' %>"
   data-aggregate-result="<%= request.aggregate_result_status || request.result_status || '' %>"
   data-funnel="<%= request.funnel || '' %>"
@@ -68,15 +75,9 @@
 <% if (_oobSwap) { %> hx-swap-oob="<%= _oobSwap %>"<% } %>>
   <header class="rh-request-card-head">
     <span class="rh-request-card-id">
-      #<%= request.id %>
-      <% if (isSubtask && request.split_root_id) { %>
-        <%- include('request-split-link', { request, inline: true }) %>
-      <% } %>
+      <%- include('request-split-folder-id', { request, inline: true }) %>
     </span>
     <span class="rh-request-card-head-meta">
-      <% if (request.is_split_root) { %>
-        <%- include('request-split-badge', { request }) %>
-      <% } %>
       <span class="badge badge-sm <%= cardStatus.badge %> rh-request-card-badge"><%= cardStatus.label %></span>
     </span>
   </header>
@@ -115,7 +116,11 @@
             </span>
             <span class="rh-request-card-kv rh-request-card-kv--cap">
               <span class="rh-request-card-inline-label">cap:</span>
-              <span class="rh-request-card-kv-value rh-table-qty"><%= buyerCap %></span>
+              <% if (showBuyerCapDisplay) { %>
+                <%- include('request-cap-display', { request }) %>
+              <% } else { %>
+                <span class="rh-request-card-kv-value">—</span>
+              <% } %>
               <% if (request.language) { %>
                 <span class="rh-request-card-dot">·</span>
                 <span class="rh-request-card-kv-value rh-geo-language"><%= request.language %></span>

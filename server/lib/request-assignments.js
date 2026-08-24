@@ -1,6 +1,8 @@
 /**
  * Request split model: one aff per request row.
- * Partial take → original row goes to aff (reduced qty); remainder → new unassigned child (split_from_id).
+ * Full take → same row goes to aff (in_progress).
+ * Partial take → original (root) stays open; new child row for taken cap (split_from_id).
+ * Root closes when pool is empty and all children are done.
  */
 
 function hasTable(db, table) {
@@ -41,6 +43,7 @@ function ensureAssignmentSchema(db) {
 
   migrateFromAssignmentPoolOnce(db);
   repairLegacyPartialTakesOnce(db);
+  repairParentStaysSplitModelOnce(db);
 }
 
 function splitMetaGet(db, key) {
@@ -88,6 +91,234 @@ function insertRemainderRequest(db, source, remainderQty, splitFromId) {
       remainderQty,
     );
   return info.lastInsertRowid;
+}
+
+function insertTakenChildRequest(db, source, takenQty, splitFromId, affId) {
+  const info = db
+    .prepare(`
+      INSERT INTO requests (
+        buyer_id, stage, geo, language, quantity, funnel, comment,
+        status, split_from_id, remaining_cap, taken_by_id, result_quantity
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, 'in_progress', ?, ?, ?, ?)
+    `)
+    .run(
+      source.buyer_id,
+      source.stage,
+      source.geo,
+      source.language,
+      takenQty,
+      source.funnel,
+      source.comment,
+      splitFromId,
+      takenQty,
+      affId,
+      takenQty,
+    );
+  return info.lastInsertRowid;
+}
+
+function resolveSplitRootId(db, request) {
+  if (!request) return null;
+  if (!request.split_from_id) return request.id;
+  return getSplitRootId(db, request);
+}
+
+function getRootPoolCap(db, rootId) {
+  const root = db.prepare('SELECT * FROM requests WHERE id = ?').get(rootId);
+  if (!root || root.status !== 'new' || root.taken_by_id) return 0;
+  return Math.max(0, Number(root.remaining_cap ?? root.quantity ?? 0));
+}
+
+function decrementRootPool(db, rootId, amount) {
+  db.prepare(`
+    UPDATE requests
+    SET remaining_cap = COALESCE(remaining_cap, quantity) - ?,
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `).run(amount, rootId);
+}
+
+function countDirectSplitChildren(db, rootId) {
+  const row = db
+    .prepare('SELECT COUNT(*) AS c FROM requests WHERE split_from_id = ?')
+    .get(rootId);
+  return Number(row?.c || 0);
+}
+
+function maybeCloseSplitRoot(db, rootId) {
+  const root = db.prepare('SELECT * FROM requests WHERE id = ?').get(rootId);
+  if (!root || root.taken_by_id || root.status === 'done') return null;
+
+  const openPool = getRootPoolCap(db, rootId);
+  if (openPool > 0) return null;
+
+  const row = db
+    .prepare(`
+      WITH RECURSIVE tree(id) AS (
+        SELECT id FROM requests WHERE split_from_id = ?
+        UNION ALL
+        SELECT r.id
+        FROM requests r
+        INNER JOIN tree t ON r.split_from_id = t.id
+      )
+      SELECT COUNT(*) AS c
+      FROM requests r
+      INNER JOIN tree t ON r.id = t.id
+      WHERE r.status != 'done'
+    `)
+    .get(rootId);
+  if (Number(row?.c || 0) > 0) return null;
+
+  db.prepare(`
+    UPDATE requests
+    SET status = 'done',
+        completed_at = CURRENT_TIMESTAMP,
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `).run(rootId);
+
+  return rootId;
+}
+
+function repairParentStaysSplitModelOnce(db) {
+  if (splitMetaGet(db, 'parent_stays_split_v1') === 'done') return;
+
+  const repair = db.transaction(() => {
+    const poolChildren = db
+      .prepare(`
+        SELECT *
+        FROM requests
+        WHERE status = 'new'
+          AND taken_by_id IS NULL
+          AND split_from_id IS NOT NULL
+      `)
+      .all();
+
+    for (const child of poolChildren) {
+      const rootId = resolveSplitRootId(db, child);
+      if (!rootId) continue;
+      db.prepare(`
+        UPDATE requests
+        SET remaining_cap = COALESCE(remaining_cap, quantity) + ?,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).run(child.quantity, rootId);
+      db.prepare('DELETE FROM requests WHERE id = ?').run(child.id);
+    }
+
+    const takenRoots = db
+      .prepare(`
+        SELECT *
+        FROM requests
+        WHERE status = 'in_progress'
+          AND taken_by_id IS NOT NULL
+          AND split_from_id IS NULL
+          AND EXISTS (
+            SELECT 1 FROM requests child WHERE child.split_from_id = requests.id
+          )
+      `)
+      .all();
+
+    for (const root of takenRoots) {
+      const childId = insertTakenChildRequest(db, root, root.quantity, root.id, root.taken_by_id);
+      db.prepare(`
+        UPDATE requests
+        SET aff_geo = ?,
+            aff_language = ?,
+            partner = ?,
+            aff_wh = ?,
+            aff_price = ?,
+            result_quantity = ?,
+            result_status = ?,
+            result_details = ?,
+            status = ?,
+            completed_at = ?,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).run(
+        root.aff_geo,
+        root.aff_language,
+        root.partner,
+        root.aff_wh,
+        root.aff_price,
+        root.result_quantity,
+        root.result_status,
+        root.result_details,
+        root.status,
+        root.completed_at,
+        childId,
+      );
+    }
+
+    const roots = db
+      .prepare(`
+        SELECT id
+        FROM requests r
+        WHERE r.split_from_id IS NULL
+          AND EXISTS (SELECT 1 FROM requests child WHERE child.split_from_id = r.id)
+      `)
+      .all()
+      .map((row) => row.id);
+
+    for (const rootId of new Set(roots)) {
+      recomputeSplitTreeRoot(db, rootId);
+    }
+
+    splitMetaSet(db, 'parent_stays_split_v1', 'done');
+  });
+
+  repair();
+}
+
+function recomputeSplitTreeRoot(db, rootId) {
+  const root = db.prepare('SELECT * FROM requests WHERE id = ?').get(rootId);
+  if (!root) return;
+
+  const descendants = db
+    .prepare(`
+      WITH RECURSIVE tree(id) AS (
+        SELECT id FROM requests WHERE split_from_id = ?
+        UNION ALL
+        SELECT r.id
+        FROM requests r
+        INNER JOIN tree t ON r.split_from_id = t.id
+      )
+      SELECT r.*
+      FROM requests r
+      INNER JOIN tree t ON r.id = t.id
+    `)
+    .all(rootId);
+
+  if (!descendants.length) return;
+
+  if (root.taken_by_id && root.status === 'in_progress' && !descendants.length) {
+    return;
+  }
+
+  const takenSum = descendants
+    .filter((row) => row.taken_by_id)
+    .reduce((sum, row) => sum + Number(row.quantity || 0), 0);
+  const poolCap = Math.max(0, getRootPoolCap(db, rootId));
+  const totalQty = poolCap + takenSum;
+
+  db.prepare(`
+    UPDATE requests
+    SET status = 'new',
+        taken_by_id = NULL,
+        partner = NULL,
+        aff_geo = NULL,
+        aff_language = NULL,
+        aff_wh = NULL,
+        aff_price = NULL,
+        result_quantity = NULL,
+        result_status = NULL,
+        result_details = NULL,
+        completed_at = NULL,
+        quantity = ?,
+        remaining_cap = ?,
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `).run(totalQty, poolCap, rootId);
 }
 
 function migrateFromAssignmentPoolOnce(db) {
@@ -303,7 +534,7 @@ function parseCapTaken(value) {
 
 function getAvailableLeads(request) {
   if (!request || request.status !== 'new' || request.taken_by_id) return 0;
-  return Number(request.quantity);
+  return Math.max(0, Number(request.remaining_cap ?? request.quantity ?? 0));
 }
 
 function hasOpenRemainderDescendant(db, requestId) {
@@ -408,6 +639,28 @@ function countSplitAffs(db, rootId) {
   return Number(row?.c || 0);
 }
 
+function getSplitTreeInWorkCap(db, rootId) {
+  ensureAssignmentSchema(db);
+  const row = db
+    .prepare(`
+      WITH RECURSIVE tree(id) AS (
+        SELECT id FROM requests WHERE id = ?
+        UNION ALL
+        SELECT r.id
+        FROM requests r
+        INNER JOIN tree t ON r.split_from_id = t.id
+      )
+      SELECT COALESCE(SUM(COALESCE(r.result_quantity, r.quantity)), 0) AS total
+      FROM requests r
+      INNER JOIN tree t ON r.id = t.id
+      WHERE r.id != ?
+        AND r.status = 'in_progress'
+        AND r.taken_by_id IS NOT NULL
+    `)
+    .get(rootId, rootId);
+  return Number(row?.total || 0);
+}
+
 function annotateSplitDisplayMeta(requests) {
   let i = 0;
 
@@ -445,6 +698,17 @@ function annotateSplitDisplayMeta(requests) {
         member.split_group_last = k === group.length - 1;
         member.split_group_middle = k > 0 && k < group.length - 1;
       }
+    } else {
+      for (const member of group) {
+        member.is_split_member = false;
+        member.is_split_root = false;
+        member.split_group_size = null;
+        member.split_aff_count = null;
+        member.split_group_index = null;
+        member.split_group_first = false;
+        member.split_group_last = false;
+        member.split_group_middle = false;
+      }
     }
 
     i = j;
@@ -475,15 +739,14 @@ function enrichRequest(db, request) {
   const split_root_id = is_subtask ? split_tree_root_id : (is_split_tree_root ? request.id : null);
   const is_split_root = is_split_tree_root;
   const available_leads = getAvailableLeads(request);
-  const split_group_size = is_split_tree_root ? split_tree_size : null;
   const split_aff_count = is_split_tree_root ? countSplitAffs(db, request.id) : null;
+  const split_in_work_cap = is_split_tree_root ? getSplitTreeInWorkCap(db, request.id) : 0;
   const split_insert_after_id = is_subtask && split_tree_root_id
     ? getSplitInsertAfterId(db, split_tree_root_id, request.id)
     : null;
 
   return {
     ...request,
-    remaining_cap: available_leads,
     available_leads,
     split_children,
     split_root_id,
@@ -496,8 +759,10 @@ function enrichRequest(db, request) {
     is_split_root,
     is_split_member: is_subtask || is_split_tree_root,
     is_split: is_split_tree_root || is_subtask,
-    split_group_size,
+    split_group_size: null,
+    split_tree_size,
     split_aff_count,
+    split_in_work_cap,
     has_available_cap: available_leads > 0,
     assignments: [],
     progress: null,
@@ -511,6 +776,57 @@ function enrichRequestForUser(db, request, user) {
 
 function enrichRequests(db, requests, user) {
   return requests.map((request) => enrichRequestForUser(db, request, user));
+}
+
+function getSplitTreeMemberIds(db, rootId) {
+  ensureAssignmentSchema(db);
+  return db
+    .prepare(`
+      WITH RECURSIVE tree(id) AS (
+        SELECT id FROM requests WHERE id = ?
+        UNION ALL
+        SELECT r.id
+        FROM requests r
+        INNER JOIN tree t ON r.split_from_id = t.id
+      )
+      SELECT id FROM tree ORDER BY id
+    `)
+    .all(rootId)
+    .map((row) => row.id);
+}
+
+function shouldAttachSplitTreeMembers(filters = {}) {
+  if (filters.assigned) return false;
+  if (filters.status === 'approved' || filters.status === 'rejected') return false;
+  return true;
+}
+
+function collectMissingSplitTreeMemberIds(db, requests, filters = {}) {
+  if (!shouldAttachSplitTreeMembers(filters) || !requests.length) return [];
+
+  const byId = new Set(requests.map((r) => r.id));
+  const missing = new Set();
+  const roots = new Set();
+
+  for (const request of requests) {
+    if (request.split_from_id) {
+      roots.add(getSplitRootId(db, request));
+    } else {
+      const children = getSplitChildren(db, request.id);
+      if (children.length > 0 || hasOpenRemainderDescendant(db, request.id)) {
+        roots.add(request.id);
+      }
+    }
+  }
+
+  for (const rootId of roots) {
+    if (!rootId || countSplitTreeMembers(db, rootId) <= 1) continue;
+    for (const id of getSplitTreeMemberIds(db, rootId)) {
+      if (!byId.has(id)) missing.add(id);
+    }
+  }
+
+  return [...missing];
 }
 
 function nestRequestsForDisplay(requests) {
@@ -586,7 +902,10 @@ function takeRequest(db, requestId, affId, capTaken) {
     if (request.status === 'done') return { ok: false, error: 'Request is already completed' };
     if (request.taken_by_id) return { ok: false, error: 'Request is already taken' };
 
-    const total = getAvailableLeads(request);
+    const rootId = resolveSplitRootId(db, request);
+    const root = db.prepare('SELECT * FROM requests WHERE id = ?').get(rootId);
+    const poolRequest = root?.status === 'new' && !root?.taken_by_id ? root : request;
+    const total = getAvailableLeads(poolRequest);
     if (total <= 0) {
       return { ok: false, error: 'Request is not available to take' };
     }
@@ -598,7 +917,10 @@ function takeRequest(db, requestId, affId, capTaken) {
       };
     }
 
-    if (amount === total) {
+    const hasChildren = countDirectSplitChildren(db, rootId) > 0;
+    const removedPoolChildIds = [];
+
+    if (amount === total && !hasChildren && poolRequest.id === rootId) {
       db.prepare(`
         UPDATE requests
         SET taken_by_id = ?,
@@ -608,74 +930,39 @@ function takeRequest(db, requestId, affId, capTaken) {
             result_quantity = ?,
             updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
-      `).run(affId, amount, amount, amount, requestId);
+      `).run(affId, amount, amount, amount, rootId);
 
       return {
         ok: true,
-        requestId,
+        requestId: rootId,
+        rootId,
         capTaken: amount,
         split: false,
         remainderRequestId: null,
+        removedPoolChildIds,
       };
     }
 
-    const remainder = total - amount;
+    decrementRootPool(db, rootId, amount);
 
-    db.prepare(`
-      UPDATE requests
-      SET quantity = ?,
-          taken_by_id = ?,
-          status = 'in_progress',
-          remaining_cap = ?,
-          result_quantity = ?,
-          updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `).run(amount, affId, amount, amount, requestId);
+    if (poolRequest.id !== rootId && amount === total) {
+      removedPoolChildIds.push(poolRequest.id);
+      db.prepare('DELETE FROM requests WHERE id = ?').run(poolRequest.id);
+    }
 
-    const remainderRequestId = insertRemainderRequest(db, request, remainder, requestId);
+    const childId = insertTakenChildRequest(db, root, amount, rootId, affId);
 
     return {
       ok: true,
-      requestId,
+      requestId: rootId,
+      rootId,
       capTaken: amount,
       split: true,
-      remainder,
-      remainderRequestId,
+      remainder: total - amount,
+      remainderRequestId: childId,
+      removedPoolChildIds,
     };
   })();
-}
-
-function findReleaseMergeTarget(db, request) {
-  const direct = db
-    .prepare(`
-      SELECT id
-      FROM requests
-      WHERE split_from_id = ?
-        AND status = 'new'
-        AND taken_by_id IS NULL
-      ORDER BY id ASC
-      LIMIT 1
-    `)
-    .get(request.id);
-  if (direct) return direct.id;
-
-  if (request.split_from_id) {
-    const sibling = db
-      .prepare(`
-        SELECT id
-        FROM requests
-        WHERE split_from_id = ?
-          AND status = 'new'
-          AND taken_by_id IS NULL
-          AND id != ?
-        ORDER BY id ASC
-        LIMIT 1
-      `)
-      .get(request.split_from_id, request.id);
-    if (sibling) return sibling.id;
-  }
-
-  return null;
 }
 
 function releaseRequest(db, requestId, affId) {
@@ -690,57 +977,22 @@ function releaseRequest(db, requestId, affId) {
     }
 
     const qty = Number(request.quantity);
-    const mergeTargetId = findReleaseMergeTarget(db, request);
+    const rootId = request.split_from_id ? resolveSplitRootId(db, request) : null;
 
-    if (mergeTargetId && qty > 0) {
+    if (rootId && request.id !== rootId) {
       db.prepare(`
         UPDATE requests
-        SET quantity = quantity + ?,
-            remaining_cap = remaining_cap + ?,
+        SET remaining_cap = COALESCE(remaining_cap, quantity) + ?,
             updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
-      `).run(qty, qty, mergeTargetId);
-
-      const otherChildren = db
-        .prepare(`
-          SELECT COUNT(*) AS c
-          FROM requests
-          WHERE split_from_id = ? AND id != ?
-        `)
-        .get(requestId, mergeTargetId).c;
-
-      if (otherChildren > 0) {
-        db.prepare(`
-          UPDATE requests
-          SET split_from_id = ?
-          WHERE split_from_id = ? AND id != ?
-        `).run(mergeTargetId, requestId, mergeTargetId);
-
-        db.prepare(`
-          UPDATE requests
-          SET split_from_id = NULL
-          WHERE id = ?
-        `).run(mergeTargetId);
-      } else if (request.split_from_id) {
-        db.prepare(`
-          UPDATE requests
-          SET split_from_id = ?
-          WHERE id = ?
-        `).run(request.split_from_id, mergeTargetId);
-      } else {
-        db.prepare(`
-          UPDATE requests
-          SET split_from_id = NULL
-          WHERE id = ?
-        `).run(mergeTargetId);
-      }
+      `).run(qty, rootId);
 
       db.prepare('DELETE FROM requests WHERE id = ?').run(requestId);
 
       return {
         ok: true,
         requestId,
-        mergedInto: mergeTargetId,
+        rootId,
         deleted: true,
       };
     }
@@ -762,7 +1014,7 @@ function releaseRequest(db, requestId, affId) {
       WHERE id = ?
     `).run(requestId);
 
-    return { ok: true, requestId };
+    return { ok: true, requestId, rootId: requestId };
   })();
 }
 
@@ -794,7 +1046,9 @@ function updateAffFields(db, requestId, affId, fields) {
     }
 
     if (affCap < currentQty) {
-      const remainder = currentQty - affCap;
+      const returned = currentQty - affCap;
+      const rootId = request.split_from_id ? resolveSplitRootId(db, request) : null;
+
       db.prepare(`
         UPDATE requests
         SET quantity = ?,
@@ -803,8 +1057,15 @@ function updateAffFields(db, requestId, affId, fields) {
         WHERE id = ?
       `).run(affCap, affCap, requestId);
 
-      remainderRequestId = insertRemainderRequest(db, request, remainder, requestId);
-      split = true;
+      if (rootId && rootId !== requestId) {
+        db.prepare(`
+          UPDATE requests
+          SET remaining_cap = COALESCE(remaining_cap, quantity) + ?,
+              updated_at = CURRENT_TIMESTAMP
+          WHERE id = ?
+        `).run(returned, rootId);
+        split = true;
+      }
     }
 
     db.prepare(`
@@ -831,6 +1092,7 @@ function updateAffFields(db, requestId, affId, fields) {
     return {
       ok: true,
       requestId,
+      rootId: request.split_from_id ? resolveSplitRootId(db, request) : null,
       split,
       remainderRequestId,
       capTaken: affCap,
@@ -872,10 +1134,15 @@ function completeRequest(db, requestId, affId, result) {
       requestId,
     );
 
+    const rootId = request.split_from_id ? resolveSplitRootId(db, request) : null;
+    const rootClosedId = rootId ? maybeCloseSplitRoot(db, rootId) : null;
+
     return {
       ok: true,
       requestId,
-      requestFullyDone: true,
+      rootId,
+      rootClosedId,
+      requestFullyDone: !rootId,
     };
   })();
 }
@@ -899,7 +1166,20 @@ function reopenRequest(db, requestId, affId) {
       WHERE id = ?
     `).run(requestId);
 
-    return { ok: true, requestId };
+    const rootId = request.split_from_id ? resolveSplitRootId(db, request) : null;
+    if (rootId) {
+      db.prepare(`
+        UPDATE requests
+        SET status = 'new',
+            completed_at = NULL,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+          AND status = 'done'
+          AND taken_by_id IS NULL
+      `).run(rootId);
+    }
+
+    return { ok: true, requestId, rootId };
   })();
 }
 
@@ -954,6 +1234,7 @@ module.exports = {
   enrichRequest,
   enrichRequestForUser,
   enrichRequests,
+  collectMissingSplitTreeMemberIds,
   nestRequestsForDisplay,
   takeRequest,
   claimAssignment: takeRequest,

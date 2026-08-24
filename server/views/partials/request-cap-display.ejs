@@ -1,0 +1,26 @@
+<%
+  var hasTotal = !(request.status === 'draft' && !request.quantity);
+  var totalCap = hasTotal ? Number(request.quantity) : null;
+  var workCap = 0;
+  var showSplit = false;
+
+  if (hasTotal && request.is_split_tree_root && (request.split_tree_size || 0) > 1) {
+    workCap = Number(request.split_in_work_cap ?? 0);
+    totalCap = Number(request.quantity ?? 0);
+    showSplit = workCap > 0 && totalCap > 0;
+  }
+
+  if (!Number.isFinite(workCap) || workCap < 0) workCap = 0;
+  if (!Number.isFinite(totalCap) || totalCap < 0) totalCap = 0;
+%>
+<% if (!hasTotal) { %>
+  —
+<% } else if (showSplit) { %>
+  <span class="rh-cap-cell">
+    <span class="rh-table-qty-work"><%= workCap %></span>
+    <span class="rh-cap-cell-sep">/</span>
+    <span class="rh-table-qty"><%= totalCap %></span>
+  </span>
+<% } else { %>
+  <span class="rh-table-qty"><%= totalCap %></span>
+<% } %>

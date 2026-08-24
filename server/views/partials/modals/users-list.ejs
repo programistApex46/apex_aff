@@ -84,7 +84,7 @@
                   <% if (u.is_active) { %>
                     <button
                       type="button"
-                      class="btn btn-xs btn-square icon-btn rh-table-action-btn text-error"
+                      class="btn btn-xs btn-square icon-btn rh-table-action-btn rh-table-action-danger"
                       title="Deactivate"
                       hx-post="/users/<%= u.id %>/delete"
                       hx-target="#modal-body"

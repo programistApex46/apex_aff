@@ -362,17 +362,51 @@
     return Number(a.dataset.id) - Number(b.dataset.id);
   }
 
+  function groupSplitRowItems(items) {
+    var groups = [];
+    var i = 0;
+
+    while (i < items.length) {
+      var item = items[i];
+      if (item.getAttribute('data-is-split-root') === '1') {
+        var rootId = item.getAttribute('data-id');
+        var group = [item];
+        i += 1;
+        while (
+          i < items.length
+          && items[i].getAttribute('data-is-subtask') === '1'
+          && items[i].getAttribute('data-split-root') === rootId
+        ) {
+          group.push(items[i]);
+          i += 1;
+        }
+        groups.push(group);
+        continue;
+      }
+
+      groups.push([item]);
+      i += 1;
+    }
+
+    return groups;
+  }
+
   function reorderContainer(containerId, itemSelector) {
     var container = document.getElementById(containerId);
     if (!container) return;
 
     var sort = readSort();
     var items = Array.from(container.querySelectorAll(itemSelector));
-    items.sort(function (a, b) {
-      return compareRows(a, b, sort);
+    var groups = groupSplitRowItems(items);
+
+    groups.sort(function (a, b) {
+      return compareRows(a[0], b[0], sort);
     });
-    items.forEach(function (item) {
-      container.appendChild(item);
+
+    groups.forEach(function (group) {
+      group.forEach(function (item) {
+        container.appendChild(item);
+      });
     });
   }
 
@@ -1214,7 +1248,7 @@
   function highlightSplitGroup(rootId, primaryNode) {
     var nodes = [];
     if (rootId) {
-      document.querySelectorAll('[data-split-root="' + rootId + '"][data-is-split-member="1"]').forEach(function (node) {
+      document.querySelectorAll('[data-split-root="' + rootId + '"][data-is-split-member="1"], [data-split-root="' + rootId + '"][data-is-subtask="1"]').forEach(function (node) {
         if (node.offsetParent !== null) nodes.push(node);
       });
     }
@@ -1266,6 +1300,9 @@
     }
 
     var groupId = target.getAttribute('data-split-root') || id;
+    if (typeof window.rhExpandSplitFolder === 'function' && groupId) {
+      window.rhExpandSplitFolder(groupId);
+    }
     highlightSplitGroup(groupId, target);
     target.scrollIntoView({
       behavior: options.smooth === false ? 'auto' : 'smooth',
@@ -1376,6 +1413,10 @@
 
     if (!usesDeskCatalog()) {
       reorderItems();
+    }
+
+    if (typeof window.rhSyncSplitFolders === 'function') {
+      window.rhSyncSplitFolders();
     }
   }
 

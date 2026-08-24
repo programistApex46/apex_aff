@@ -10,16 +10,15 @@
   if (isSubtask) rowClasses.push('rh-request-row--subtask');
   if (isSplitMember) rowClasses.push('rh-request-row--split-member');
   if (request.is_split_root) rowClasses.push('rh-request-row--split-root');
-  var rowTitle = rowStatus.label;
-  if (request.is_split_root && request.split_group_size > 1) {
-    rowTitle += ' · Split · ' + request.split_group_size + ' parts';
-    if (request.split_aff_count >= 2) rowTitle += ' · ' + request.split_aff_count + ' affs';
+  if (request.is_split_root && (request.split_group_size || 0) >= 2) {
+    rowClasses.push('rh-split-folder-root');
   }
 %>
 <tr
   id="request-row-<%= request.id %>"
   class="<%= rowClasses.join(' ') %>"
-  title="<%= rowTitle %>"
+  data-status-label="<%= rowStatus.label %>"
+  data-status-key="<%= rowStatus.key %>"
   data-id="<%= request.id %>"
   data-status="<%= request.status %>"
   data-stage="<%= request.buyer_stage %>"
@@ -33,6 +32,8 @@
   data-split-root="<%= request.split_root_id || request.split_from_id || '' %>"
   data-is-subtask="<%= isSubtask ? '1' : '0' %>"
   data-is-split-member="<%= isSplitMember ? '1' : '0' %>"
+  data-is-split-root="<%= request.is_split_root && (request.split_group_size || 0) >= 2 ? '1' : '0' %>"
+  data-split-group-size="<%= request.split_group_size || '' %>"
   data-funnel="<%= request.funnel || '' %>"
   data-comment="<%= request.comment || '' %>"
   data-buyer-id="<%= request.buyer_id %>"
@@ -61,12 +62,8 @@
 <% if (_oobSwap) { %> hx-swap-oob="<%= _oobSwap %>"<% } %>>
   <td class="rh-td-meta rh-td-id">
     <div class="rh-request-id-cell">
-      <span class="rh-row-status-tip"><%= rowStatus.label %></span>
       <div class="rh-request-id-cell-main">
-        <span class="rh-request-row-id"><%= request.id %></span>
-        <% if (isSubtask && request.split_root_id) { %>
-          <%- include('request-split-link', { request, inline: true }) %>
-        <% } %>
+        <%- include('request-split-folder-id', { request }) %>
       </div>
     </div>
   </td>
@@ -86,7 +83,7 @@
   <td class="rh-td-buyer rh-td-language">
     <%- include('geo-table-language', { language: request.language }) %>
   </td>
-  <td class="rh-td-buyer"><span class="rh-table-qty"><%= request.status === 'draft' && !request.quantity ? '—' : request.quantity %></span></td>
+  <td class="rh-td-buyer"><%- include('request-cap-display', { request }) %></td>
   <td class="rh-td-buyer"><%= request.funnel || '' %></td>
   <td class="rh-td-buyer rh-td-note rh-table-note">
     <%- include('request-note', { comment: request.comment, requestId: request.id }) %>

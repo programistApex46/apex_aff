@@ -1,0 +1,36 @@
+<%
+  var isSubtask = !!request.is_subtask;
+  var isSplitRoot = !!request.is_split_root && (request.split_group_size || 0) >= 2;
+  var splitRootId = request.split_root_id || (isSplitRoot ? request.id : null);
+  var groupSize = request.split_group_size || 0;
+  var partIndex = typeof request.split_group_index === 'number' ? request.split_group_index + 1 : null;
+  var inline = typeof inline !== 'undefined' && inline;
+%>
+<div class="rh-split-folder-id<%= inline ? ' rh-split-folder-id--inline' : '' %>">
+  <% if (isSplitRoot) { %>
+    <button
+      type="button"
+      class="rh-split-folder-toggle"
+      data-rh-split-folder="<%= request.id %>"
+      aria-expanded="true"
+      aria-label="Toggle split parts"
+      title="Show or hide split parts"
+    >
+      <%- include('icon', { name: 'chevron-down', className: 'rh-split-folder-chevron w-3.5 h-3.5' }) %>
+    </button>
+    <span class="rh-split-folder-icon rh-split-folder-icon--root" aria-hidden="true">
+      <%- include('icon', { name: 'folder', className: 'w-4 h-4' }) %>
+    </span>
+  <% } else if (isSubtask && splitRootId) { %>
+    <span class="rh-split-folder-indent" aria-hidden="true"></span>
+    <span class="rh-split-folder-icon rh-split-folder-icon--part" aria-hidden="true">
+      <%- include('icon', { name: 'folder-part', className: 'w-3.5 h-3.5' }) %>
+    </span>
+  <% } %>
+  <span class="rh-request-row-id"><%= request.id %></span>
+  <% if (isSplitRoot && groupSize >= 2) { %>
+    <span class="rh-split-folder-count" title="<%= groupSize %> parts"><%= groupSize %> parts</span>
+  <% } else if (isSubtask && partIndex && groupSize >= 2) { %>
+    <span class="rh-split-part-label"><%= partIndex %>/<%= groupSize %></span>
+  <% } %>
+</div>

@@ -4,12 +4,14 @@
   <% if (typeof mobileCard === 'undefined' || !mobileCard) { %>
     <button
       type="button"
-      class="btn btn-success btn-sm rh-table-action-take"
+      class="btn btn-xs btn-square icon-btn rh-table-action-btn rh-table-action-take"
       title="Take request"
       hx-get="/<%= request.id %>/take-modal"
       hx-target="#modal-body"
       hx-swap="innerHTML"
-    >Take</button>
+    >
+      <%- include('icon', { name: 'user-plus', className: 'w-4 h-4' }) %>
+    </button>
   <% } else { %>
     <span class="rh-table-empty"></span>
   <% } %>
@@ -44,7 +46,7 @@
       <% } %>
       <button
         type="button"
-        class="btn btn-xs btn-square icon-btn rh-table-action-btn rh-table-action-release"
+        class="btn btn-xs btn-square icon-btn rh-table-action-btn rh-table-action-danger rh-table-action-release"
         title="Release piece"
         hx-get="/<%= request.id %>/release-modal"
         hx-target="#modal-body"
@@ -60,18 +62,21 @@
   <% if (typeof mobileCard === 'undefined' || !mobileCard) { %>
     <button
       type="button"
-      class="btn btn-ghost btn-sm rh-request-card-reopen"
+      class="btn btn-xs btn-square icon-btn rh-table-action-btn rh-table-action-reopen"
+      title="Reopen"
       hx-get="/<%= request.id %>/reopen-modal"
       hx-target="#modal-body"
       hx-swap="innerHTML"
-    >Reopen</button>
+    >
+      <%- include('icon', { name: 'restore', className: 'w-4 h-4' }) %>
+    </button>
   <% } else { %>
     <span class="rh-table-empty"></span>
   <% } %>
 <% } else if (user.role === 'buyer' && request.status === 'draft') { %>
   <button
     type="button"
-    class="btn btn-ghost btn-xs btn-square icon-btn"
+    class="btn btn-xs btn-square icon-btn rh-table-action-btn rh-table-action-edit"
     title="Continue draft"
     onclick="openRequestCreate()"
   >

@@ -23,6 +23,7 @@ const {
   enrichRequestForUser,
   enrichRequests,
   nestRequestsForDisplay,
+  collectMissingSplitTreeMemberIds,
   claimAssignment,
   parseCapTaken,
   cancelAssignment,
@@ -400,7 +401,7 @@ function getRequestById(db, id, user = null) {
   if (!row) return null;
   const request = enrichRequestForUser(db, row, user);
   request.aggregate_result_status = aggregateResultStatus(request);
-  return request;
+  return nestRequestsForDisplay([request])[0];
 }
 
 function canUserSeeRequest(db, user, request) {
@@ -592,8 +593,9 @@ function renderRow(res, { request, user, error, oob, insertIds }) {
 }
 
 function renderRows(res, { requests, user, error, oob, removeIds, insertIds }) {
+  const nested = nestRequestsForDisplay(requests);
   return res.render('partials/htmx-oob-rows', {
-    requests,
+    requests: nested,
     removeIds: removeIds || [],
     insertIds: insertIds || [],
     user,
@@ -604,6 +606,14 @@ function renderRows(res, { requests, user, error, oob, removeIds, insertIds }) {
 }
 
 const LIST_PARTIAL_PATH = REQUESTS_LIST;
+
+function getRequestsByIds(db, user, ids) {
+  if (!ids.length) return [];
+  const { where, params } = buildRequestConditions(user, {});
+  const placeholders = ids.map(() => '?').join(', ');
+  const extraWhere = where ? `${where} AND r.id IN (${placeholders})` : `WHERE r.id IN (${placeholders})`;
+  return db.prepare(`${REQUEST_SELECT} ${extraWhere}`).all(...params, ...ids);
+}
 
 function buildRequestsListViewData(req) {
   const db = getDb();
@@ -621,9 +631,21 @@ function buildRequestsListViewData(req) {
     totalCount: filteredCount,
     offset: (page - 1) * parsedPagination.perPage,
   };
+  let rows = getRequestsForUser(db, user, filters, sort, pagination);
+  const missingSplitIds = collectMissingSplitTreeMemberIds(db, rows, filters);
+  if (missingSplitIds.length) {
+    const extras = getRequestsByIds(db, user, missingSplitIds);
+    const seen = new Set(rows.map((row) => row.id));
+    for (const row of extras) {
+      if (!seen.has(row.id)) {
+        rows.push(row);
+        seen.add(row.id);
+      }
+    }
+  }
   const enriched = enrichRequests(
     db,
-    getRequestsForUser(db, user, filters, sort, pagination),
+    rows,
     user
   ).map((request) => ({
     ...request,
@@ -949,29 +971,31 @@ router.post('/:id/take', requireRole('aff'), (req, res) => {
     });
   }
 
-  const request = getRequestById(db, requestId, user);
-  const remainderRequest = result.remainderRequestId
+  const request = getRequestById(db, result.requestId ?? requestId, user);
+  const childRequest = result.remainderRequestId
     ? getRequestById(db, result.remainderRequestId, user)
     : null;
 
-  notifyRequestClaimed(request, user, result, remainderRequest);
+  notifyRequestClaimed(request, user, result, childRequest);
   broadcastRequestUpdated(request);
-  if (remainderRequest) {
-    notifyNewRequest(remainderRequest);
-    broadcastRequestUpdated(remainderRequest);
+  if (childRequest) {
+    notifyNewRequest(childRequest);
+    broadcastRequestUpdated(childRequest);
   }
 
-  const insertIds = remainderRequest ? [remainderRequest.id] : [];
+  const insertIds = childRequest ? [childRequest.id] : [];
+  const removeIds = result.removedPoolChildIds || [];
 
   if (wantsPartial(req)) {
     res.set('HX-Trigger', 'modal-close');
-    const rows = remainderRequest ? [request, remainderRequest] : [request];
-    return renderRows(res, { requests: rows, insertIds, user, oob: true });
+    const rows = childRequest ? [request, childRequest] : [request];
+    return renderRows(res, { requests: rows, insertIds, removeIds, user, oob: true });
   }
 
   return renderRows(res, {
-    requests: remainderRequest ? [request, remainderRequest] : [request],
+    requests: childRequest ? [request, childRequest] : [request],
     insertIds,
+    removeIds,
     user,
     oob: true,
   });
@@ -1025,11 +1049,13 @@ router.post('/:id/release', requireRole('aff'), (req, res) => {
   const rows = [];
   const removeIds = [];
 
-  if (result.mergedInto) {
-    const merged = getRequestById(db, result.mergedInto, user);
-    if (merged) rows.push(merged);
-    if (result.deleted) removeIds.push(requestId);
-    if (merged) broadcastRequestUpdated(merged);
+  if (result.deleted && result.rootId) {
+    const root = getRequestById(db, result.rootId, user);
+    if (root) {
+      rows.push(root);
+      broadcastRequestUpdated(root);
+    }
+    removeIds.push(requestId);
   } else {
     const updated = getRequestById(db, requestId, user);
     if (updated) rows.push(updated);
@@ -1145,9 +1171,18 @@ router.post('/:id/complete', requireRole('aff'), (req, res) => {
   notifyAssignmentDone(updated);
   broadcastRequestUpdated(updated);
 
+  const rows = [updated];
+  if (result.rootClosedId) {
+    const root = getRequestById(db, result.rootClosedId, user);
+    if (root) {
+      rows.unshift(root);
+      broadcastRequestUpdated(root);
+    }
+  }
+
   if (wantsPartial(req)) {
     res.set('HX-Trigger', 'modal-close');
-    return renderRows(res, { requests: [updated], user, oob: true });
+    return renderRows(res, { requests: rows, user, oob: true });
   }
 
   res.redirect(HOME);
@@ -1229,22 +1264,18 @@ router.post('/:id/aff-fields', requireRole('aff'), (req, res) => {
   }
 
   const updated = getRequestById(db, requestId, user);
-  const remainderRequest = result.remainderRequestId
-    ? getRequestById(db, result.remainderRequestId, user)
+  const rootRequest = result.rootId && result.rootId !== requestId
+    ? getRequestById(db, result.rootId, user)
     : null;
 
   broadcastRequestUpdated(updated);
-  if (remainderRequest) {
-    notifyNewRequest(remainderRequest);
-    broadcastRequestUpdated(remainderRequest);
-  }
+  if (rootRequest) broadcastRequestUpdated(rootRequest);
 
-  const insertIds = remainderRequest ? [remainderRequest.id] : [];
+  const rows = rootRequest ? [rootRequest, updated] : [updated];
 
   if (wantsPartial(req)) {
     res.set('HX-Trigger', 'modal-close');
-    const rows = remainderRequest ? [updated, remainderRequest] : [updated];
-    return renderRows(res, { requests: rows, insertIds, user, oob: true });
+    return renderRows(res, { requests: rows, user, oob: true });
   }
 
   res.redirect(HOME);
@@ -1315,12 +1346,21 @@ router.post('/:id/reopen', requireRole('aff'), (req, res) => {
 
   broadcastRequestUpdated(updated);
 
-  if (wantsPartial(req)) {
-    res.set('HX-Trigger', 'modal-close');
-    return renderRows(res, { requests: [updated], user, oob: true });
+  const rows = [updated];
+  if (result.rootId && result.rootId !== requestId) {
+    const root = getRequestById(db, result.rootId, user);
+    if (root) {
+      rows.unshift(root);
+      broadcastRequestUpdated(root);
+    }
   }
 
-  return renderRow(res, { request: updated, user, oob: true });
+  if (wantsPartial(req)) {
+    res.set('HX-Trigger', 'modal-close');
+    return renderRows(res, { requests: rows, user, oob: true });
+  }
+
+  return renderRows(res, { requests: rows, user, oob: true });
 });
 
 module.exports = router;
