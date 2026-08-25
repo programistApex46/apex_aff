@@ -28,6 +28,20 @@
   var isMyDone = _aff.canAffReopenRequest(request, user);
   var canTake = _aff.canAffClaimRequest(request, user);
   var affReady = _aff.isAffFieldsComplete(request);
+  var teamLabel = _formatTeamLabel(request.buyer_team_name);
+  var hasGeo = !!(buyerGeo && buyerGeo !== '—');
+  var hasFunnel = !!(request.funnel && String(request.funnel).trim());
+  var hasNote = !!(request.comment && String(request.comment).trim());
+  var hasAff = !!request.taken_by_stage;
+  var hasPartner = !!(request.partner && String(request.partner).trim());
+  var hasWh = !!(request.aff_wh && String(request.aff_wh).trim());
+  var hasPrice = !!(request.aff_price && String(request.aff_price).trim());
+  var hasAffMetrics = hasPartner || hasWh || hasPrice;
+  var hasOrg = !!(request.buyer_company && String(request.buyer_company).trim());
+  var hasTeam = !!teamLabel;
+  var showStage = showBuyerMeta && !!request.buyer_stage;
+  var showChips = showStage || (showBuyerMeta && (hasOrg || hasTeam));
+  var showHero = hasGeo || showBuyerCapDisplay || !!request.language;
 %>
 <article
   id="request-card-<%= request.id %>"
@@ -83,112 +97,92 @@
   </header>
 
   <div class="rh-request-card-body">
-    <section class="rh-request-card-section rh-request-card-section--buyer">
-      <div class="rh-request-card-fields">
-        <% if (showBuyerMeta) { %>
-          <div class="rh-request-card-row rh-request-card-row--meta">
-            <span class="rh-request-card-kv">
-              <span class="rh-request-card-inline-label">Org</span>
-              <span class="rh-request-card-kv-value"><%= request.buyer_company || '—' %></span>
+    <% if (showHero) { %>
+      <div class="rh-request-card-hero">
+        <div class="rh-request-card-hero-main">
+          <% if (hasGeo) { %>
+            <%- include('geo-table-cell', { geo: buyerGeo, compact: true }) %>
+          <% } else { %>
+            <span class="rh-request-card-hero-empty">No GEO</span>
+          <% } %>
+        </div>
+        <div class="rh-request-card-hero-stats">
+          <% if (showBuyerCapDisplay) { %>
+            <span class="rh-request-card-stat">
+              <span class="rh-request-card-stat-label">Cap</span>
+              <%- include('request-cap-display', { request }) %>
             </span>
-            <span class="rh-request-card-kv">
-              <span class="rh-request-card-inline-label">Team</span>
-              <span class="rh-request-card-kv-value"><%= _formatTeamLabel(request.buyer_team_name) || '—' %></span>
-            </span>
-          </div>
+          <% } %>
+          <% if (request.language) { %>
+            <span class="rh-request-card-chip rh-request-card-chip--lang"><%= request.language %></span>
+          <% } %>
+        </div>
+      </div>
+    <% } %>
+
+    <% if (showChips) { %>
+      <div class="rh-request-card-chips">
+        <% if (showStage) { %>
+          <%- include('buyer-stage', { stage: request.buyer_stage, teamName: request.buyer_team_name }) %>
         <% } %>
-        <div class="rh-request-card-row rh-request-card-row--primary">
-          <span class="rh-request-card-kv rh-request-card-kv--stage">
-            <span class="rh-request-card-inline-label">Stage</span>
-            <% if (showBuyerMeta) { %>
-              <%- include('buyer-stage', { stage: request.buyer_stage, teamName: request.buyer_team_name }) %>
-            <% } else { %>
-              <span class="rh-request-card-kv-value"><%= request.buyer_stage %></span>
+        <% if (showBuyerMeta && (hasOrg || hasTeam)) { %>
+          <span class="rh-request-card-chip">
+            <% if (hasOrg) { %><%= request.buyer_company %><% } %><% if (hasOrg && hasTeam) { %> · <% } %><% if (hasTeam) { %><%= teamLabel %><% } %>
+          </span>
+        <% } %>
+      </div>
+    <% } %>
+
+    <% if (hasFunnel || hasNote) { %>
+      <div class="rh-request-card-extras">
+        <% if (hasFunnel) { %>
+          <span class="rh-request-card-extra">
+            <span class="rh-request-card-inline-label">Funnel</span>
+            <span class="rh-request-card-kv-value"><%= request.funnel %></span>
+          </span>
+        <% } %>
+        <% if (hasNote) { %>
+          <span class="rh-request-card-extra rh-request-card-extra--note">
+            <span class="rh-request-card-inline-label">Note</span>
+            <span class="rh-request-card-kv-value rh-request-card-note-value">
+              <%- include('request-note', { comment: request.comment, requestId: request.id, maxLen: 72 }) %>
+            </span>
+          </span>
+        <% } %>
+      </div>
+    <% } %>
+
+    <% if (hasAff) { %>
+      <section class="rh-request-card-section rh-request-card-section--aff">
+        <div class="rh-request-card-aff-row">
+          <span class="rh-request-card-kv rh-request-card-kv--aff">
+            <%- include('aff-user-tag', { stage: request.taken_by_stage, avatarPath: request.taken_by_avatar_path }) %>
+          </span>
+          <span class="rh-request-card-hero-stats">
+            <span class="rh-request-card-stat">
+              <span class="rh-request-card-stat-label">Cap</span>
+              <span class="rh-table-qty"><%- include('request-aff-cap-display', { request }) %></span>
+            </span>
+            <% if (request.aff_language) { %>
+              <span class="rh-request-card-chip rh-request-card-chip--lang"><%= request.aff_language %></span>
             <% } %>
           </span>
-          <span class="rh-request-card-row-group">
-            <span class="rh-request-card-kv rh-request-card-kv--geo">
-              <% if (buyerGeo === '—') { %>
-                <span class="rh-request-card-kv-value">—</span>
-              <% } else { %>
-                <%- include('geo-table-cell', { geo: buyerGeo }) %>
-              <% } %>
-            </span>
-            <span class="rh-request-card-kv rh-request-card-kv--cap">
-              <span class="rh-request-card-inline-label">cap:</span>
-              <% if (showBuyerCapDisplay) { %>
-                <%- include('request-cap-display', { request }) %>
-              <% } else { %>
-                <span class="rh-request-card-kv-value">—</span>
-              <% } %>
-              <% if (request.language) { %>
-                <span class="rh-request-card-dot">·</span>
-                <span class="rh-request-card-kv-value rh-geo-language"><%= request.language %></span>
-              <% } %>
-            </span>
-          </span>
         </div>
-        <div class="rh-request-card-row rh-request-card-row--secondary">
-          <span class="rh-request-card-kv">
-            <span class="rh-request-card-inline-label">Funnel</span>
-            <span class="rh-request-card-kv-value"><%= request.funnel || '—' %></span>
-          </span>
-          <% if (request.comment) { %>
-            <span class="rh-request-card-kv rh-request-card-kv--note">
-              <span class="rh-request-card-inline-label">Note</span>
-              <span class="rh-request-card-kv-value rh-request-card-note-value">
-                <%- include('request-note', { comment: request.comment, requestId: request.id }) %>
-              </span>
-            </span>
-          <% } %>
-        </div>
-      </div>
-    </section>
-
-    <section class="rh-request-card-section rh-request-card-section--aff">
-      <div class="rh-request-card-fields">
-        <div class="rh-request-card-row rh-request-card-row--primary">
-          <span class="rh-request-card-kv rh-request-card-kv--aff">
-            <span class="rh-request-card-inline-label">Aff</span>
-            <span class="rh-request-card-kv-value">
-              <% if (request.taken_by_stage) { %>
-                <%- include('aff-user-tag', { stage: request.taken_by_stage, avatarPath: request.taken_by_avatar_path }) %>
-              <% } else { %>
-                —
-              <% } %>
-            </span>
-          </span>
-          <% if (request.taken_by_id) { %>
-            <span class="rh-request-card-row-group">
-              <span class="rh-request-card-kv rh-request-card-kv--cap">
-                <span class="rh-request-card-inline-label">cap:</span>
-                <span class="rh-request-card-kv-value rh-table-qty"><%- include('request-aff-cap-display', { request }) %></span>
-                <% if (request.aff_language) { %>
-                  <span class="rh-request-card-dot">·</span>
-                  <span class="rh-request-card-kv-value rh-geo-language"><%= request.aff_language %></span>
-                <% } %>
-              </span>
-            </span>
-          <% } %>
-        </div>
-        <% if (request.taken_by_id) { %>
-        <div class="rh-request-card-row rh-request-card-row--aff-metrics">
-          <span class="rh-request-card-kv">
-            <span class="rh-request-card-inline-label">Partner</span>
-            <span class="rh-request-card-kv-value"><%= request.partner || '—' %></span>
-          </span>
-          <span class="rh-request-card-kv">
-            <span class="rh-request-card-inline-label">Wh</span>
-            <span class="rh-request-card-kv-value"><%= request.aff_wh || '—' %></span>
-          </span>
-          <span class="rh-request-card-kv">
-            <span class="rh-request-card-inline-label">Price</span>
-            <span class="rh-request-card-kv-value"><%= request.aff_price ? formatAffPrice(request.aff_price) : '—' %></span>
-          </span>
-        </div>
+        <% if (hasAffMetrics) { %>
+          <div class="rh-request-card-chips rh-request-card-chips--metrics">
+            <% if (hasPartner) { %>
+              <span class="rh-request-card-chip"><span class="rh-request-card-inline-label">Partner</span> <%= request.partner %></span>
+            <% } %>
+            <% if (hasWh) { %>
+              <span class="rh-request-card-chip"><span class="rh-request-card-inline-label">Wh</span> <%= request.aff_wh %></span>
+            <% } %>
+            <% if (hasPrice) { %>
+              <span class="rh-request-card-chip"><span class="rh-request-card-inline-label">Price</span> <%= formatAffPrice(request.aff_price) %></span>
+            <% } %>
+          </div>
         <% } %>
-      </div>
-    </section>
+      </section>
+    <% } %>
   </div>
 
   <% if (canTake) { %>

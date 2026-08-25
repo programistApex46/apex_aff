@@ -1,5 +1,8 @@
 <%
-  var noteInfo = truncateNote(comment, typeof full !== 'undefined' && full ? 10000 : 6);
+  var noteMax = typeof maxLen !== 'undefined'
+    ? maxLen
+    : (typeof full !== 'undefined' && full ? 10000 : 6);
+  var noteInfo = truncateNote(comment, noteMax);
 %>
 <% if (noteInfo.full) { %>
   <button

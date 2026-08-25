@@ -3697,7 +3697,165 @@ body.rh-quiz-open {
 }
 
 .rh-request-card-body {
-  padding: 0 0.625rem 0.4375rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0 0.625rem 0.5rem;
+}
+
+.rh-request-card-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.rh-request-card-hero-main {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.rh-request-card-hero-empty {
+  font-size: 0.8125rem;
+  color: var(--rh-text-muted);
+}
+
+.rh-request-card-hero-stats {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem 0.5rem;
+  flex-shrink: 0;
+}
+
+.rh-request-card-stat {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  white-space: nowrap;
+}
+
+.rh-request-card-stat-label {
+  font-size: 0.6875rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--rh-text-muted);
+}
+
+.rh-request-card-hero .rh-table-qty,
+.rh-request-card-hero .rh-table-qty-work,
+.rh-request-card-stat .rh-table-qty {
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+
+.rh-request-card-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3125rem;
+}
+
+.rh-request-card-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  max-width: 100%;
+  padding: 0.1875rem 0.5rem;
+  border-radius: 9999px;
+  background: var(--rh-surface-2);
+  border: 1px solid var(--rh-border);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--rh-text-secondary);
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rh-request-card-chip .rh-request-card-inline-label {
+  font-size: 0.6875rem;
+}
+
+.rh-request-card-chip--lang {
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--rh-text);
+  text-transform: uppercase;
+}
+
+.rh-request-card-chips .rh-buyer-stage {
+  padding: 0.1875rem 0.5rem;
+  font-size: 0.75rem;
+}
+
+.rh-request-card-extras {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.rh-request-card-extra {
+  display: flex;
+  align-items: baseline;
+  gap: 0.375rem;
+  min-width: 0;
+  font-size: 0.8125rem;
+  line-height: 1.35;
+}
+
+.rh-request-card-extra--note {
+  flex-wrap: wrap;
+}
+
+.rh-request-card-section--aff {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--rh-border);
+}
+
+.rh-request-card-aff-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.rh-request-card-aff-row .rh-request-card-kv--aff {
+  flex: 1 1 auto;
+}
+
+.rh-request-card-aff-row .rh-aff-user {
+  max-width: none;
+}
+
+.rh-request-card-aff-row .rh-aff-user-name {
+  max-width: 9rem;
+}
+
+.rh-request-card-extra .rh-request-card-note-value,
+.rh-request-card-extra .rh-note-preview {
+  max-width: 100%;
+}
+
+.rh-geo-cell--card {
+  width: auto;
+  max-width: 100%;
+}
+
+.rh-geo-cell--card .rh-geo-cell-text {
+  font-size: 0.9375rem;
+  font-weight: 650;
+}
+
+.rh-geo-cell--card .rh-geo-flag {
+  width: 1.25rem;
+  height: 0.9375rem;
 }
 
 .rh-request-card-section + .rh-request-card-section {
@@ -3794,66 +3952,6 @@ body.rh-quiz-open {
   }
 }
 
-.rh-request-card-fields {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3125rem;
-  margin: 0;
-}
-
-.rh-request-card-row {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.375rem 0.625rem;
-  min-width: 0;
-}
-
-.rh-request-card-row--meta {
-  justify-content: space-between;
-}
-
-.rh-request-card-row--primary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: nowrap;
-  gap: 0.5rem;
-}
-
-.rh-request-card-row-group {
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-end;
-  flex: 1 1 auto;
-  gap: 0.5rem;
-  min-width: 0;
-}
-
-.rh-request-card-row--secondary {
-  justify-content: space-between;
-  gap: 0.5rem 0.75rem;
-}
-
-.rh-request-card-row--aff-metrics {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: nowrap;
-  gap: 0.375rem 0.5rem;
-}
-
-.rh-request-card-row--aff-metrics .rh-request-card-kv {
-  flex: 0 1 auto;
-  min-width: 0;
-}
-
-.rh-request-card-row--aff-metrics .rh-request-card-kv-value {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .rh-request-card-kv {
   display: inline-flex;
   align-items: center;
@@ -3874,44 +3972,6 @@ body.rh-quiz-open {
 .rh-request-card-kv-value {
   font-weight: 500;
   color: var(--rh-text);
-  min-width: 0;
-}
-
-.rh-request-card-kv--stage {
-  flex: 0 1 auto;
-}
-
-.rh-request-card-kv--stage .rh-buyer-stage {
-  padding: 0.15rem 0.45rem;
-  font-size: 0.75rem;
-  letter-spacing: 0.03em;
-}
-
-.rh-request-card-kv--geo {
-  flex: 0 1 auto;
-  min-width: 0;
-  max-width: 100%;
-}
-
-.rh-request-card-kv--geo .rh-geo-cell {
-  max-width: 100%;
-}
-
-.rh-request-card-kv--geo .rh-geo-cell-text {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 0.8125rem;
-}
-
-.rh-request-card-kv--cap {
-  flex: 0 0 auto;
-  white-space: nowrap;
-}
-
-.rh-request-card-kv--note {
-  flex: 1 1 8rem;
-  justify-content: flex-end;
   min-width: 0;
 }
 
@@ -3937,11 +3997,6 @@ body.rh-quiz-open {
   font-size: 0.5625rem;
 }
 
-.rh-request-card-row--secondary .rh-request-card-kv {
-  flex: 0 1 auto;
-  min-width: 0;
-}
-
 .rh-request-card-note-value {
   display: inline-flex;
   min-width: 0;
@@ -3949,17 +4004,12 @@ body.rh-quiz-open {
 }
 
 .rh-request-card-note-value .rh-note-preview {
-  max-width: 6.5rem;
+  max-width: 100%;
   font-size: 0.8125rem;
 }
 
-.rh-request-card-note-value .rh-note-preview--link:hover,
-.rh-request-card-kv--note .rh-note-preview--link:hover {
+.rh-request-card-note-value .rh-note-preview--link:hover {
   color: var(--rh-accent);
-}
-
-.rh-request-card-dot {
-  color: var(--rh-text-muted);
 }
 
 .rh-geo-cell {
@@ -4668,11 +4718,17 @@ body.rh-quiz-open {
 .rh-request-card--approved .rh-request-card-foot,
 .rh-request-card--approved .rh-request-card-kv-value,
 .rh-request-card--approved .rh-request-card-inline-label,
+.rh-request-card--approved .rh-request-card-chip,
+.rh-request-card--approved .rh-request-card-stat-label,
+.rh-request-card--approved .rh-geo-cell--card .rh-geo-cell-text,
 .rh-request-card--rejected .rh-request-card-head,
 .rh-request-card--rejected .rh-request-card-body,
 .rh-request-card--rejected .rh-request-card-foot,
 .rh-request-card--rejected .rh-request-card-kv-value,
-.rh-request-card--rejected .rh-request-card-inline-label {
+.rh-request-card--rejected .rh-request-card-inline-label,
+.rh-request-card--rejected .rh-request-card-chip,
+.rh-request-card--rejected .rh-request-card-stat-label,
+.rh-request-card--rejected .rh-geo-cell--card .rh-geo-cell-text {
   color: var(--rh-text-muted);
 }
 
@@ -4794,7 +4850,12 @@ body.rh-quiz-open {
   .rh-request-card-body,
   .rh-request-card-foot,
   .rh-request-card-aff-actions {
-    padding-left: 0.875rem;
+    padding-left: 1.125rem;
+  }
+
+  .rh-request-card-hero {
+    flex-wrap: wrap;
+    row-gap: 0.375rem;
   }
 
   [data-theme="rh-dark"] .rh-request-card {
@@ -5260,9 +5321,7 @@ body.rh-quiz-open {
 }
 
 .rh-request-card-note-value .rh-note-preview--link:hover,
-.rh-request-card-note-value .rh-note-preview--link:focus-visible,
-.rh-request-card-kv--note .rh-note-preview--link:hover,
-.rh-request-card-kv--note .rh-note-preview--link:focus-visible {
+.rh-request-card-note-value .rh-note-preview--link:focus-visible {
   color: var(--rh-table-qty);
 }
 
