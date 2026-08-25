@@ -17,6 +17,7 @@
       <div class="rh-requests-toolbar-sort" id="rh-desktop-sort-slot">
         <%- include('_sort-control', { sort, cardSortOptions, perPageOptions, pagination }) %>
       </div>
+      <%- include('_col-picker') %>
     </div>
     <% if (user && (user.role === 'buyer' || user.role === 'teamlead')) { %>
       <div class="rh-requests-toolbar-actions">
@@ -24,4 +25,5 @@
       </div>
     <% } %>
   </div>
+  <%- include('_col-picker', { pickerMode: 'panel' }) %>
 </div>

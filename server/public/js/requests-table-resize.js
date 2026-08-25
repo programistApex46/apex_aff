@@ -15,7 +15,7 @@
     created_at: 104,
     company: 56,
     team: 50,
-    stage: 57,
+    stage: 96,
     geo: 112,
     language: 40,
     quantity: 52,
@@ -99,23 +99,40 @@
     return colgroup;
   }
 
+  function isHiddenCol(table, key) {
+    return table.classList.contains('rh-col-off-' + key);
+  }
+
   function setColumnWidth(table, th, width) {
     var index = Array.prototype.indexOf.call(th.parentElement.children, th);
     var cols = table.querySelectorAll('colgroup col');
+    var key = getColKey(th);
+    var hidden = isHiddenCol(table, key);
 
     if (cols[index]) {
-      cols[index].style.width = width + 'px';
+      cols[index].style.display = hidden ? 'none' : '';
+      cols[index].style.width = '';
+      cols[index].style.minWidth = '';
     }
 
-    th.style.width = width + 'px';
+    if (hidden) {
+      th.style.width = '';
+      th.style.minWidth = '';
+      th.style.maxWidth = '';
+      return;
+    }
+
+    th.style.width = '';
+    th.style.maxWidth = '';
     th.style.minWidth = width + 'px';
-    th.style.maxWidth = width + 'px';
   }
 
   function captureAllWidths(table) {
     var widths = {};
     table.querySelectorAll('thead tr th').forEach(function (th) {
-      widths[getColKey(th)] = th.offsetWidth;
+      var key = getColKey(th);
+      if (isHiddenCol(table, key) || th.offsetWidth === 0) return;
+      widths[key] = th.offsetWidth;
     });
     return widths;
   }
@@ -125,13 +142,13 @@
 
     ensureColgroup(table);
     table.classList.add('rh-data-table--resizable');
-    table.style.tableLayout = 'fixed';
-    table.style.width = '100%';
+    table.style.tableLayout = 'auto';
+    table.style.width = 'max-content';
+    table.style.minWidth = '100%';
 
     table.querySelectorAll('thead tr th').forEach(function (th) {
       var key = getColKey(th);
-      var width = widths[key];
-      if (!width) return;
+      var width = widths[key] || DEFAULT_WIDTHS[key] || MIN_WIDTH;
       var min = key === 'actions' ? MIN_ACTIONS_WIDTH : MIN_WIDTH;
       setColumnWidth(table, th, Math.max(min, width));
     });
@@ -163,6 +180,7 @@
     evt.stopPropagation();
 
     var key = getColKey(th);
+    if (isHiddenCol(table, key)) return;
     var widths = loadWidths();
 
     if (table.style.tableLayout !== 'fixed') {

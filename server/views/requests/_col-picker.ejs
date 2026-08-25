@@ -1,0 +1,86 @@
+<% var pickerMode = typeof pickerMode === 'undefined' ? 'button' : pickerMode; %>
+<%
+  var colGroups = [
+    {
+      id: 'meta',
+      label: 'Meta',
+      items: [
+        { key: 'created_at', label: 'Created' },
+      ],
+    },
+    {
+      id: 'buyer',
+      label: 'Buyer',
+      items: [
+        { key: 'company', label: 'Org' },
+        { key: 'team', label: 'Team' },
+        { key: 'stage', label: 'Stage' },
+        { key: 'geo', label: 'GEO' },
+        { key: 'language', label: 'Lang' },
+        { key: 'quantity', label: 'Cap' },
+        { key: 'funnel', label: 'Funnel' },
+        { key: 'comment', label: 'Note' },
+      ],
+    },
+    {
+      id: 'aff',
+      label: 'Aff',
+      items: [
+        { key: 'aff', label: 'Aff' },
+        { key: 'partner', label: 'Partner' },
+        { key: 'aff_cap', label: 'Cap' },
+        { key: 'aff_wh', label: 'Wh' },
+        { key: 'aff_price', label: 'Price' },
+      ],
+    },
+  ];
+%>
+<% if (pickerMode === 'button') { %>
+<div class="rh-col-picker-wrap">
+  <button
+    type="button"
+    class="rh-col-picker-btn"
+    id="requests-col-btn"
+    aria-expanded="false"
+    aria-controls="requests-col-picker"
+    aria-haspopup="true"
+    title="Table settings"
+  >
+    <%- include('../partials/icon', { name: 'cog', className: 'w-4 h-4' }) %>
+    <span class="sr-only">Table settings</span>
+    <span class="rh-col-picker-btn-dot" id="requests-col-btn-dot" hidden></span>
+  </button>
+</div>
+<% } else { %>
+<div class="rh-col-picker" id="requests-col-picker" hidden>
+  <% colGroups.forEach(function (group) { %>
+    <div class="rh-col-picker-group" data-col-group="<%= group.id %>">
+      <button
+        type="button"
+        class="rh-col-picker-label"
+        data-col-group-toggle="<%= group.id %>"
+        title="Toggle <%= group.label.toLowerCase() %> columns"
+      ><%= group.label %></button>
+      <div class="rh-col-picker-items">
+        <% group.items.forEach(function (item) { %>
+          <button
+            type="button"
+            class="rh-col-chip is-on"
+            data-col-toggle="<%= item.key %>"
+            aria-pressed="true"
+          ><%= item.label %></button>
+        <% }) %>
+      </div>
+    </div>
+  <% }) %>
+  <button type="button" class="rh-col-picker-reset" id="requests-col-reset" hidden>Show all</button>
+</div>
+<div class="rh-col-context" id="requests-col-menu" hidden role="menu" aria-label="Column">
+  <button type="button" class="rh-col-context-item" id="requests-col-hide" role="menuitem">
+    <span class="rh-col-context-icon" aria-hidden="true">
+      <%- include('../partials/icon', { name: 'eye-off', className: 'w-4 h-4' }) %>
+    </span>
+    <span>Hide column</span>
+  </button>
+</div>
+<% } %>

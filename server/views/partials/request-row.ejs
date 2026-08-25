@@ -60,46 +60,46 @@
     : null;
 %>
 <% if (_oobSwap) { %> hx-swap-oob="<%= _oobSwap %>"<% } %>>
-  <td class="rh-td-meta rh-td-id">
+  <td class="rh-td-meta rh-td-id" data-col-key="id">
     <div class="rh-request-id-cell">
       <div class="rh-request-id-cell-main">
         <%- include('request-split-folder-id', { request }) %>
       </div>
     </div>
   </td>
-  <td class="rh-td-meta rh-muted whitespace-nowrap text-sm"><%= formatRequestDate(request.created_at) %></td>
-  <td class="rh-td-buyer rh-td-org"><%= request.buyer_company || '' %></td>
-  <td class="rh-td-buyer rh-td-team"><%= formatTeamLabel(request.buyer_team_name) %></td>
-  <td class="rh-td-buyer rh-td-stage">
+  <td class="rh-td-meta rh-muted whitespace-nowrap text-sm" data-col-key="created_at"><%= formatRequestDate(request.created_at) %></td>
+  <td class="rh-td-buyer rh-td-org" data-col-key="company"><%= request.buyer_company || '' %></td>
+  <td class="rh-td-buyer rh-td-team" data-col-key="team"><%= formatTeamLabel(request.buyer_team_name) %></td>
+  <td class="rh-td-buyer rh-td-stage" data-col-key="stage">
     <%- include('buyer-stage', { stage: request.buyer_stage, teamName: request.buyer_team_name }) %>
   </td>
-  <td class="rh-td-buyer rh-td-geo font-medium">
+  <td class="rh-td-buyer rh-td-geo font-medium" data-col-key="geo">
     <% if (request.status === 'draft' && !request.geo) { %>
       —
     <% } else { %>
       <%- include('geo-table-cell', { geo: request.geo }) %>
     <% } %>
   </td>
-  <td class="rh-td-buyer rh-td-language">
+  <td class="rh-td-buyer rh-td-language" data-col-key="language">
     <%- include('geo-table-language', { language: request.language }) %>
   </td>
-  <td class="rh-td-buyer"><%- include('request-cap-display', { request }) %></td>
-  <td class="rh-td-buyer"><%= request.funnel || '' %></td>
-  <td class="rh-td-buyer rh-td-note rh-table-note">
-    <%- include('request-note', { comment: request.comment, requestId: request.id }) %>
+  <td class="rh-td-buyer" data-col-key="quantity"><%- include('request-cap-display', { request }) %></td>
+  <td class="rh-td-buyer" data-col-key="funnel"><%= request.funnel || '' %></td>
+  <td class="rh-td-buyer rh-td-note rh-table-note" data-col-key="comment">
+    <%- include('request-note', { comment: request.comment, requestId: request.id, full: true }) %>
   </td>
-  <td class="rh-td-aff">
+  <td class="rh-td-aff" data-col-key="aff">
     <% if (request.taken_by_stage) { %>
       <%- include('aff-user-tag', { stage: request.taken_by_stage, avatarPath: request.taken_by_avatar_path }) %>
     <% } else { %>
       <span class="rh-muted">—</span>
     <% } %>
   </td>
-  <td class="rh-td-aff"><%= request.partner || '' %></td>
-  <td class="rh-td-aff"><%- include('request-aff-cap-display', { request }) %></td>
-  <td class="rh-td-aff"><%= request.aff_wh || '' %></td>
-  <td class="rh-td-aff"><%= formatAffPrice(request.aff_price) %></td>
-  <td class="rh-table-actions">
+  <td class="rh-td-aff" data-col-key="partner"><%= request.partner || '' %></td>
+  <td class="rh-td-aff" data-col-key="aff_cap"><%- include('request-aff-cap-display', { request }) %></td>
+  <td class="rh-td-aff" data-col-key="aff_wh"><%= request.aff_wh || '' %></td>
+  <td class="rh-td-aff" data-col-key="aff_price"><%= formatAffPrice(request.aff_price) %></td>
+  <td class="rh-table-actions" data-col-key="actions">
     <%- include('request-row-actions', { request, user, affReady, error: typeof error !== 'undefined' ? error : null }) %>
   </td>
 </tr>
