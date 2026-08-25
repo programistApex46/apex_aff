@@ -63,6 +63,12 @@ else
   echo "WARN: theme.css looks old — check rsync path"
 fi
 
+if grep -q 'finishRequestsListLoading' server/public/js/requests-list-loader.js; then
+  echo "OK: requests-list-loader.js is up to date"
+else
+  echo "WARN: requests-list-loader.js looks old — check rsync path"
+fi
+
 if grep -q 'col-widths-v12' server/public/js/requests-table-resize.js; then
   echo "OK: requests-table-resize.js is up to date"
 else

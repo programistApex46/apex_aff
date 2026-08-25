@@ -114,6 +114,15 @@
       </div>
     </div>
 
+    <script>
+      setTimeout(function () {
+        var stage = document.getElementById('requests-stage');
+        if (stage && stage.classList.contains('rh-is-loading')) {
+          stage.classList.remove('rh-is-loading');
+          stage.setAttribute('aria-busy', 'false');
+        }
+      }, 10000);
+    </script>
     <script src="/js/requests-list-loader.js"></script>
     <script src="/js/request-row-tooltip.js"></script>
     <script src="/js/split-folders.js"></script>

@@ -32,6 +32,8 @@
   }
 
   var paginatedRefreshTimer = null;
+  var paginationReloadAttempts = 0;
+  var MAX_PAGINATION_RELOADS = 2;
 
   function reloadListFromUrl(params) {
     if (usesDeskCatalog()) {
@@ -43,6 +45,8 @@
       window.setRequestsListLoading(true);
     }
 
+    window.__rhAwaitingListSwap = true;
+
     if (!params) params = new URLSearchParams(window.location.search);
     var qs = params.toString();
     if (typeof htmx !== 'undefined' && document.getElementById('requests-main')) {
@@ -52,6 +56,7 @@
       });
       return;
     }
+    window.__rhAwaitingListSwap = false;
     window.location.assign(urlFromParams(params));
   }
 
@@ -1228,36 +1233,55 @@
   }
 
   function initRequestsList() {
-    ensurePerPageInUrl();
-    if (domExceedsPagination()) {
-      reloadListFromUrl();
-      return;
-    }
+    var awaitingSwap = false;
 
-    relocateMobileSort();
-    relocateMobileFilters();
-    syncSortFormFromUrl();
-    syncFormFromUrl();
-    updateSortHeaders();
-    applyFiltersToLists();
-    updateFilterFieldStates();
-    updateSortFieldStates();
-    bindSearchInput();
-    syncSearchClearButton();
-    bindSortHeaders();
-    bindFilterControls();
-    bindSortControls();
+    try {
+      ensurePerPageInUrl();
+      if (domExceedsPagination()) {
+        if (paginationReloadAttempts < MAX_PAGINATION_RELOADS) {
+          paginationReloadAttempts += 1;
+          reloadListFromUrl();
+          awaitingSwap = true;
+          return;
+        }
+        console.warn('[requests-sse] pagination reload cap reached, showing current list');
+      } else {
+        paginationReloadAttempts = 0;
+      }
 
-    if (!window.__rhSortRelocateBound) {
-      window.__rhSortRelocateBound = true;
-      window.addEventListener('resize', relocateMobileSort);
-    }
+      relocateMobileSort();
+      relocateMobileFilters();
+      syncSortFormFromUrl();
+      syncFormFromUrl();
+      updateSortHeaders();
+      applyFiltersToLists();
+      updateFilterFieldStates();
+      updateSortFieldStates();
+      bindSearchInput();
+      syncSearchClearButton();
+      bindSortHeaders();
+      bindFilterControls();
+      bindSortControls();
 
-    bindSplitLinks();
-    handleSplitHash();
+      if (!window.__rhSortRelocateBound) {
+        window.__rhSortRelocateBound = true;
+        window.addEventListener('resize', relocateMobileSort);
+      }
 
-    if (typeof window.revealRequestsList === 'function') {
-      window.revealRequestsList();
+      bindSplitLinks();
+      handleSplitHash();
+    } catch (err) {
+      console.error('[requests-sse] initRequestsList failed', err);
+    } finally {
+      if (awaitingSwap || window.__rhAwaitingListSwap) return;
+
+      if (typeof window.revealRequestsList === 'function') {
+        window.revealRequestsList();
+      } else if (typeof window.finishRequestsListLoading === 'function') {
+        window.finishRequestsListLoading();
+      } else if (typeof window.setRequestsListLoading === 'function') {
+        window.setRequestsListLoading(false);
+      }
     }
   }
 
@@ -1517,6 +1541,7 @@
     if (!evt.detail.target || !evt.detail.target.id) return;
 
     if (evt.detail.target.id === 'requests-main') {
+      window.__rhAwaitingListSwap = false;
       initRequestsList();
       refreshMobileNav();
       handleSplitHash();
