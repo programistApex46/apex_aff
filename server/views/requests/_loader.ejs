@@ -1,0 +1,15 @@
+<div class="rh-requests-loader" id="requests-loader" role="status" aria-live="polite" aria-label="Loading requests">
+  <div class="rh-requests-loader-inner">
+    <span class="rh-requests-loader-spinner" aria-hidden="true"></span>
+    <div class="rh-requests-loader-skeleton rh-requests-loader-skeleton--desktop" aria-hidden="true">
+      <% for (var sk = 0; sk < 6; sk += 1) { %>
+        <div class="rh-requests-loader-row"></div>
+      <% } %>
+    </div>
+    <div class="rh-requests-loader-skeleton rh-requests-loader-skeleton--mobile" aria-hidden="true">
+      <% for (var skm = 0; skm < 4; skm += 1) { %>
+        <div class="rh-requests-loader-card"></div>
+      <% } %>
+    </div>
+  </div>
+</div>

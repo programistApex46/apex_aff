@@ -39,6 +39,10 @@
       return;
     }
 
+    if (typeof window.setRequestsListLoading === 'function') {
+      window.setRequestsListLoading(true);
+    }
+
     if (!params) params = new URLSearchParams(window.location.search);
     var qs = params.toString();
     if (typeof htmx !== 'undefined' && document.getElementById('requests-main')) {
@@ -442,8 +446,44 @@
     });
   }
 
+  function rowMatchesFiltersAndSearch(row) {
+    return rowMatchesSearch(row, getSearchQuery()) && rowMatchesFilters(row, readFilters());
+  }
+
+  function splitGroupHasFilterMatch(rootId) {
+    var rootRow = document.getElementById('request-row-' + rootId);
+    var rootCard = document.getElementById('request-card-' + rootId);
+    var root = rootRow || rootCard;
+    if (root && rowMatchesFiltersAndSearch(root)) return true;
+
+    var children = document.querySelectorAll(
+      '[data-split-root="' + rootId + '"][data-is-subtask="1"]'
+    );
+    for (var i = 0; i < children.length; i++) {
+      if (rowMatchesFiltersAndSearch(children[i])) return true;
+    }
+    return false;
+  }
+
   function applyFiltersToRow(row, skipEmpty) {
-    var matches = rowMatchesSearch(row, getSearchQuery()) && rowMatchesFilters(row, readFilters());
+    var matches = rowMatchesFiltersAndSearch(row);
+    var isRoot = row.getAttribute('data-is-split-root') === '1';
+    var isChild = row.getAttribute('data-is-subtask') === '1';
+    var rootId = isRoot ? row.getAttribute('data-id') : row.getAttribute('data-split-root');
+
+    if (rootId && (isRoot || isChild)) {
+      var groupMatches = splitGroupHasFilterMatch(rootId);
+
+      if (isRoot) {
+        matches = groupMatches;
+      } else if (!groupMatches) {
+        matches = false;
+      } else {
+        // Visibility while collapsed/expanded is handled by split-folders.js only.
+        matches = true;
+      }
+    }
+
     row.style.display = matches ? '' : 'none';
     if (!skipEmpty) updateFilteredEmptyState();
   }
@@ -1215,6 +1255,10 @@
 
     bindSplitLinks();
     handleSplitHash();
+
+    if (typeof window.revealRequestsList === 'function') {
+      window.revealRequestsList();
+    }
   }
 
   var splitTargetTimer = null;
@@ -1482,6 +1526,7 @@
           '#requests-body tr, #requests-cards-mobile .rh-request-card'
         );
       }
+      return;
     }
   });
 })();

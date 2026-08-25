@@ -101,10 +101,20 @@
 
     <%- include('_toolbar', { user, totalCount, filters, filterOptions, hasActiveFilters, sort, cardSortOptions, perPageOptions, pagination, clearListUrl }) %>
 
-    <div id="requests-main">
-      <%- include('_main', { user, requests, statusBadgeClass, totalCount, filteredCount, filters, filterOptions, hasActiveFilters, sort, cardSortOptions, sortToggleUrl, sortToggleListUrl, isSortActive, clearListUrl, pagination, paginationUrl, paginationListUrl }) %>
+    <div
+      id="requests-stage"
+      class="rh-requests-stage<%= totalCount > 0 ? ' rh-is-loading' : '' %>"
+      aria-busy="<%= totalCount > 0 ? 'true' : 'false' %>"
+    >
+      <% if (totalCount > 0) { %>
+        <%- include('_loader') %>
+      <% } %>
+      <div id="requests-main">
+        <%- include('_main', { user, requests, statusBadgeClass, totalCount, filteredCount, filters, filterOptions, hasActiveFilters, sort, cardSortOptions, sortToggleUrl, sortToggleListUrl, isSortActive, clearListUrl, pagination, paginationUrl, paginationListUrl }) %>
+      </div>
     </div>
 
+    <script src="/js/requests-list-loader.js"></script>
     <script src="/js/request-row-tooltip.js"></script>
     <script src="/js/split-folders.js"></script>
     <script src="/js/requests-sse.js"></script>

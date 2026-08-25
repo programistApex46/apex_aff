@@ -50,6 +50,12 @@
     markFolderGroupEdges(rootId);
   }
 
+  function syncSplitFolderFilters() {
+    if (typeof window.applyRequestsSearch === 'function') {
+      window.applyRequestsSearch();
+    }
+  }
+
   function markFolderGroupEdges(rootId) {
     var members = [];
     var rootRow = document.getElementById('request-row-' + rootId);
@@ -106,6 +112,7 @@
     collapsed.splice(idx, 1);
     writeCollapsed(collapsed);
     setFolderExpanded(String(rootId), true);
+    syncSplitFolderFilters();
   }
 
   document.addEventListener('click', function (evt) {
@@ -130,6 +137,7 @@
     collapsed.splice(idx, 1);
     writeCollapsed(collapsed);
     setFolderExpanded(String(rootId), true);
+    syncSplitFolderFilters();
   });
 
   window.rhSyncSplitFolders = syncSplitFolders;
