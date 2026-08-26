@@ -1,0 +1,10 @@
+<%
+  var agreed = Number(request.agreed_cap ?? 0);
+  if (!Number.isFinite(agreed) || agreed < 0) agreed = 0;
+  var isSplitRoot = !!(request.is_split_tree_root || (request.is_split_root && (request.split_group_size || request.split_tree_size || 0) > 1));
+%>
+<% if (isSplitRoot || agreed > 0) { %>
+  <span class="rh-table-qty rh-table-qty-agreed"><%= agreed %></span>
+<% } else { %>
+  —
+<% } %>

@@ -1,0 +1,11 @@
+<%
+  var assignees = request.split_assignees || [];
+  var showStack = request.is_split_root && assignees.length > 0;
+%>
+<% if (showStack) { %>
+  <%- include('aff-assignees-stack', { assignees: assignees }) %>
+<% } else if (request.taken_by_stage) { %>
+  <%- include('aff-user-tag', { stage: request.taken_by_stage, avatarPath: request.taken_by_avatar_path }) %>
+<% } else { %>
+  <span class="rh-muted">—</span>
+<% } %>

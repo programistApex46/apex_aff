@@ -1,9 +1,21 @@
 <% if (stage) { %>
-  <span class="rh-aff-user">
+  <%
+    var showName = typeof showName !== 'undefined' && showName;
+    var tooltip = stage;
+  %>
+  <span
+    class="rh-aff-user<%= showName ? '' : ' rh-aff-user--avatar-only' %>"
+    <% if (!showName) { %>
+    data-aff-name="<%= tooltip %>"
+    <% } %>
+    aria-label="<%= tooltip %>"
+  >
     <%- include('user-avatar', {
       user: { stage: stage, avatar_path: typeof avatarPath !== 'undefined' ? avatarPath : null },
       avatarClass: typeof avatarClass !== 'undefined' ? avatarClass : 'rh-avatar-sm'
     }) %>
-    <span class="rh-aff-user-name"><%= stage %></span>
+    <% if (showName) { %>
+      <span class="rh-aff-user-name"><%= stage %></span>
+    <% } %>
   </span>
 <% } %>

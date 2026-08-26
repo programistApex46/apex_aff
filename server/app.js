@@ -13,20 +13,27 @@ const {
   geoTableLabel,
   geoTableName,
   formatRequestDate,
+  formatRequestDisplayId,
   getCardDisplayStatus,
   formatRequestProgress,
   showCompletedDate,
   truncateNote,
   formatTeamLabel,
   buyerStageTeamClass,
-  formatAffPrice,
+  formatAffPrice
 } = require('./lib/display');
 const {
   isAffFieldsComplete,
   canAffClaimRequest,
   canAffManageRequest,
-  canAffReopenRequest,
+  canAffReopenRequest
 } = require('./lib/request-aff');
+const {
+  requestDomSlug,
+  encodeRequestPath,
+  parseRequestId,
+  nextRootRequestId
+} = require('./lib/request-id');
 const { HOME } = require('./lib/paths');
 const { addClient } = require('./sse');
 const { initTelegramBot } = require('./telegram');
@@ -51,6 +58,7 @@ app.locals.geoFlagEmoji = geoFlagEmoji;
 app.locals.geoTableLabel = geoTableLabel;
 app.locals.geoTableName = geoTableName;
 app.locals.formatRequestDate = formatRequestDate;
+app.locals.formatRequestDisplayId = formatRequestDisplayId;
 app.locals.getCardDisplayStatus = getCardDisplayStatus;
 app.locals.showCompletedDate = showCompletedDate;
 app.locals.truncateNote = truncateNote;
@@ -64,6 +72,8 @@ app.locals.canAffManageRequest = canAffManageRequest;
 app.locals.canAffReopenRequest = canAffReopenRequest;
 app.locals.userStage = userStage;
 app.locals.USER_COMPANIES = USER_COMPANIES;
+app.locals.requestDomSlug = requestDomSlug;
+app.locals.encodeRequestPath = encodeRequestPath;
 
 app.use((req, res, next) => {
   res.locals.geoFlagUrl = geoFlagUrl;
@@ -71,6 +81,7 @@ app.use((req, res, next) => {
   res.locals.geoTableLabel = geoTableLabel;
   res.locals.geoTableName = geoTableName;
   res.locals.formatRequestDate = formatRequestDate;
+  res.locals.formatRequestDisplayId = formatRequestDisplayId;
   res.locals.getCardDisplayStatus = getCardDisplayStatus;
   res.locals.showCompletedDate = showCompletedDate;
   res.locals.truncateNote = truncateNote;
@@ -83,6 +94,8 @@ app.use((req, res, next) => {
   res.locals.canAffManageRequest = canAffManageRequest;
   res.locals.canAffReopenRequest = canAffReopenRequest;
   res.locals.userStage = userStage;
+  res.locals.requestDomSlug = requestDomSlug;
+  res.locals.encodeRequestPath = encodeRequestPath;
   next();
 });
 
@@ -94,7 +107,7 @@ app.use(
   session({
     secret: process.env.SESSION_SECRET || 'changeme',
     resave: false,
-    saveUninitialized: false,
+    saveUninitialized: false
   })
 );
 

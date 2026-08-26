@@ -3,6 +3,13 @@
   var affReady = isAffFieldsComplete(request);
   var isSubtask = !!request.is_subtask;
   var isSplitMember = !!request.is_split_member;
+  var splitAssignees = request.split_assignees || [];
+  var assignmentAffIds = request.taken_by_id || '';
+  var affSearchLabel = request.taken_by_stage || '';
+  if (splitAssignees.length) {
+    assignmentAffIds = splitAssignees.map(function (aff) { return aff.id; }).join(',');
+    affSearchLabel = splitAssignees.map(function (aff) { return aff.stage; }).join(' ');
+  }
   var rowClasses = [
     'rh-request-row',
     'rh-request-row--' + rowStatus.key,
@@ -15,11 +22,12 @@
   }
 %>
 <tr
-  id="request-row-<%= request.id %>"
+  id="request-row-<%= requestDomSlug(request.id) %>"
   class="<%= rowClasses.join(' ') %>"
   data-status-label="<%= rowStatus.label %>"
   data-status-key="<%= rowStatus.key %>"
   data-id="<%= request.id %>"
+  data-display-id="<%= formatRequestDisplayId(request) %>"
   data-status="<%= request.status %>"
   data-stage="<%= request.buyer_stage %>"
   data-company="<%= request.buyer_company || '' %>"
@@ -27,9 +35,11 @@
   data-geo="<%= request.geo %>"
   data-language="<%= request.language || '' %>"
   data-quantity="<%= request.quantity %>"
+  data-cap-agreed="<%= request.agreed_cap ?? 0 %>"
   data-remaining-cap="<%= request.available_leads ?? request.quantity %>"
   data-split-from="<%= request.split_from_id || '' %>"
   data-split-root="<%= request.split_root_id || request.split_from_id || '' %>"
+  data-split-part="<%= request.split_part || request.split_part_number || '' %>"
   data-is-subtask="<%= isSubtask ? '1' : '0' %>"
   data-is-split-member="<%= isSplitMember ? '1' : '0' %>"
   data-is-split-root="<%= request.is_split_root && (request.split_group_size || 0) >= 2 ? '1' : '0' %>"
@@ -37,10 +47,10 @@
   data-funnel="<%= request.funnel || '' %>"
   data-comment="<%= request.comment || '' %>"
   data-buyer-id="<%= request.buyer_id %>"
-  data-aff="<%= request.taken_by_stage || '' %>"
+  data-aff="<%= affSearchLabel %>"
   data-partner="<%= request.partner || '' %>"
   data-assigned-id="<%= request.taken_by_id || '' %>"
-  data-assignment-aff-ids="<%= request.taken_by_id || '' %>"
+  data-assignment-aff-ids="<%= assignmentAffIds %>"
   data-aff-geo="<%= request.aff_geo || '' %>"
   data-aff-language="<%= request.aff_language || '' %>"
   data-aff-cap="<%= (request.split_from_id || request.is_subtask) ? (request.quantity ?? '') : (request.result_quantity ?? '') %>"
@@ -51,12 +61,13 @@
   data-created="<%= request.created_at %>"
 <%
   var _insertIds = typeof insertIds !== 'undefined' ? insertIds : [];
+  var _isOobInsert = _insertIds.some(function (id) { return String(id) === String(request.id); });
   var _oobInsert = typeof oob !== 'undefined' && oob
-    && _insertIds.indexOf(request.id) !== -1
+    && _isOobInsert
     && isSubtask
     && request.split_insert_after_id;
   var _oobSwap = typeof oob !== 'undefined' && oob
-    ? (_oobInsert ? 'afterend:#request-row-' + request.split_insert_after_id : 'outerHTML')
+    ? (_oobInsert ? 'afterend:#request-row-' + requestDomSlug(request.split_insert_after_id) : 'outerHTML')
     : null;
 %>
 <% if (_oobSwap) { %> hx-swap-oob="<%= _oobSwap %>"<% } %>>
@@ -84,16 +95,13 @@
     <%- include('geo-table-language', { language: request.language }) %>
   </td>
   <td class="rh-td-buyer" data-col-key="quantity"><%- include('request-cap-display', { request }) %></td>
+  <td class="rh-td-buyer" data-col-key="cap_agreed"><%- include('request-agreed-cap-display', { request }) %></td>
   <td class="rh-td-buyer" data-col-key="funnel"><%= request.funnel || '' %></td>
   <td class="rh-td-buyer rh-td-note rh-table-note" data-col-key="comment">
-    <%- include('request-note', { comment: request.comment, requestId: request.id, full: true }) %>
+    <%- include('request-note', { comment: request.comment, requestId: request.id, maxLen: 6 }) %>
   </td>
   <td class="rh-td-aff" data-col-key="aff">
-    <% if (request.taken_by_stage) { %>
-      <%- include('aff-user-tag', { stage: request.taken_by_stage, avatarPath: request.taken_by_avatar_path }) %>
-    <% } else { %>
-      <span class="rh-muted">—</span>
-    <% } %>
+    <%- include('request-aff-display', { request }) %>
   </td>
   <td class="rh-td-aff" data-col-key="partner"><%= request.partner || '' %></td>
   <td class="rh-td-aff" data-col-key="aff_cap"><%- include('request-aff-cap-display', { request }) %></td>

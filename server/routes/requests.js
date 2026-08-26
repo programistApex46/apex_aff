@@ -24,6 +24,8 @@ const {
   enrichRequests,
   nestRequestsForDisplay,
   collectMissingSplitTreeMemberIds,
+  shouldAttachSplitTreeMembers,
+  getSplitTreeMemberRequests,
   claimAssignment,
   parseCapTaken,
   cancelAssignment,
@@ -34,8 +36,9 @@ const {
   applyQuantityEdit,
   aggregateResultStatus,
 } = require('../lib/request-assignments');
-const { buildAffMobileNav } = require('../lib/aff-mobile-nav');
+const { parseRequestId, nextRootRequestId } = require('../lib/request-id');
 const { buildTlMobileNav } = require('../lib/tl-mobile-nav');
+const { buildAffMobileNav } = require('../lib/aff-mobile-nav');
 const { HOME, REQUESTS_LIST } = require('../lib/paths');
 const {
   getCardSortOptions,
@@ -298,21 +301,29 @@ function buildRequestConditions(user, filters = {}) {
   return { where, params };
 }
 
+function applyPaginationScope(where, filters) {
+  if (!shouldAttachSplitTreeMembers(filters)) return where;
+  const clause = 'r.split_from_id IS NULL';
+  return where ? `${where} AND ${clause}` : `WHERE ${clause}`;
+}
+
 function countRequestsForUser(db, user, filters = {}) {
   const { where, params } = buildRequestConditions(user, filters);
+  const scopedWhere = applyPaginationScope(where, filters);
   return db
     .prepare(`
       SELECT COUNT(*) AS c
       FROM requests r
       JOIN users buyer ON r.buyer_id = buyer.id
-      ${where}
+      ${scopedWhere}
     `)
     .get(...params).c;
 }
 
 function getRequestsForUser(db, user, filters = {}, sort = parseSort({}), pagination = null) {
   const { where, params } = buildRequestConditions(user, filters);
-  let sql = `${REQUEST_SELECT} ${where} ${getOrderByClause(sort)}`;
+  const scopedWhere = pagination ? applyPaginationScope(where, filters) : where;
+  let sql = `${REQUEST_SELECT} ${scopedWhere} ${getOrderByClause(sort)}`;
 
   if (pagination) {
     sql += ' LIMIT ? OFFSET ?';
@@ -361,9 +372,20 @@ function sanitizeFilters(db, user, filters) {
   if (
     sanitized.assigned &&
     sanitized.assigned !== 'none' &&
+    user.role !== 'aff' &&
     !options.affs.some((a) => String(a.id) === sanitized.assigned)
   ) {
     sanitized.assigned = '';
+  }
+
+  if (user.role === 'aff') {
+    if (
+      sanitized.assigned &&
+      sanitized.assigned !== 'none' &&
+      String(sanitized.assigned) !== String(user.id)
+    ) {
+      sanitized.assigned = '';
+    }
   }
 
   return sanitized;
@@ -395,13 +417,21 @@ function getFilterOptions(db, user) {
   return { geos, buyers, affs };
 }
 
-function getRequestById(db, id, user = null) {
+function mapRequestRow(db, id, user) {
   ensureAssignmentSchema(db);
   const row = db.prepare(`${REQUEST_SELECT} WHERE r.id = ?`).get(id);
   if (!row) return null;
   const request = enrichRequestForUser(db, row, user);
   request.aggregate_result_status = aggregateResultStatus(request);
-  return nestRequestsForDisplay([request])[0];
+  return request;
+}
+
+function getSplitTreeForRender(db, id, user) {
+  return getSplitTreeMemberRequests(db, id, (memberId) => mapRequestRow(db, memberId, user));
+}
+
+function getRequestById(db, id, user = null) {
+  return mapRequestRow(db, id, user);
 }
 
 function canUserSeeRequest(db, user, request) {
@@ -427,9 +457,10 @@ function canUserSeeRequest(db, user, request) {
 }
 
 function broadcastRequestUpdated(request) {
+  const splitRootId = request.split_tree_root_id || request.split_root_id || request.id;
   broadcast(
     'request-updated',
-    JSON.stringify({ id: request.id, status: request.status })
+    JSON.stringify({ id: request.id, splitRootId, status: request.status })
   );
 }
 
@@ -603,6 +634,11 @@ function renderRows(res, { requests, user, error, oob, removeIds, insertIds }) {
     statusBadgeClass,
     oob: oob || false,
   });
+}
+
+function buildSplitOobRequests(rows, ids) {
+  const idSet = new Set((ids || []).map((id) => String(id)));
+  return rows.filter((row) => idSet.has(String(row.id)));
 }
 
 const LIST_PARTIAL_PATH = REQUESTS_LIST;
@@ -793,11 +829,21 @@ router.post('/', requireRole(...CREATE_REQUEST_ROLES), (req, res) => {
         buyerId
       );
     } else {
-      const info = db.prepare(`
-        INSERT INTO requests (buyer_id, geo, language, quantity, funnel, comment, status, remaining_cap)
-        VALUES (?, ?, ?, ?, ?, ?, 'draft', ?)
-      `).run(buyerId, fields.geo || '', fields.language, fields.quantity, fields.funnel, fields.comment, fields.quantity);
-      setRemainingCapOnCreate(db, info.lastInsertRowid, fields.quantity);
+      const draftRequestId = nextRootRequestId(db);
+      db.prepare(`
+        INSERT INTO requests (id, buyer_id, geo, language, quantity, funnel, comment, status, remaining_cap)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 'draft', ?)
+      `).run(
+        draftRequestId,
+        buyerId,
+        fields.geo || '',
+        fields.language,
+        fields.quantity,
+        fields.funnel,
+        fields.comment,
+        fields.quantity
+      );
+      setRemainingCapOnCreate(db, draftRequestId, fields.quantity);
     }
 
     if (wantsPartial(req)) {
@@ -858,12 +904,13 @@ router.post('/', requireRole(...CREATE_REQUEST_ROLES), (req, res) => {
     }
     requestId = draftId;
   } else {
-    const result = db
-      .prepare(`
-        INSERT INTO requests (buyer_id, geo, language, quantity, funnel, comment, status, remaining_cap)
-        VALUES (?, ?, ?, ?, ?, ?, 'new', ?)
+    const requestId = nextRootRequestId(db);
+    db.prepare(`
+        INSERT INTO requests (id, buyer_id, geo, language, quantity, funnel, comment, status, remaining_cap)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 'new', ?)
       `)
       .run(
+        requestId,
         buyerId,
         validation.resolvedGeo,
         validation.language,
@@ -872,8 +919,9 @@ router.post('/', requireRole(...CREATE_REQUEST_ROLES), (req, res) => {
         validation.comment,
         validation.qty
       );
-    requestId = result.lastInsertRowid;
   }
+
+  setRemainingCapOnCreate(db, requestId, validation.qty);
 
   const request = getRequestById(db, requestId, req.session.user);
   notifyNewRequest(request);
@@ -890,19 +938,29 @@ router.post('/', requireRole(...CREATE_REQUEST_ROLES), (req, res) => {
 router.get('/:id/row', (req, res) => {
   const db = getDb();
   const user = req.session.user;
-  const request = getRequestById(db, Number(req.params.id), user);
+  const requestId = parseRequestId(req.params.id);
+  const request = getRequestById(db, requestId, user);
+
+  if (!request) {
+    return res.status(404).end();
+  }
 
   if (!canUserSeeRequest(db, user, request)) {
     return res.status(403).end();
   }
 
-  return renderRow(res, { request, user, oob: true });
+  const requests = getSplitTreeForRender(db, requestId, user);
+  if (requests.length <= 1) {
+    return renderRow(res, { request: requests[0] || request, user, oob: true });
+  }
+
+  return renderRows(res, { requests, user, oob: true });
 });
 
 router.get('/:id/take-modal', requireRole('aff'), (req, res) => {
   const db = getDb();
   const user = req.session.user;
-  const request = getRequestById(db, Number(req.params.id), user);
+  const request = getRequestById(db, parseRequestId(req.params.id), user);
 
   if (!canAffClaimRequest(request, user)) {
     return res.status(403).end();
@@ -917,7 +975,7 @@ router.get('/:id/take-modal', requireRole('aff'), (req, res) => {
 
 router.post('/:id/take', requireRole('aff'), (req, res) => {
   const db = getDb();
-  const requestId = Number(req.params.id);
+  const requestId = parseRequestId(req.params.id);
   const user = req.session.user;
   const requestBefore = getRequestById(db, requestId, user);
 
@@ -979,21 +1037,25 @@ router.post('/:id/take', requireRole('aff'), (req, res) => {
   notifyRequestClaimed(request, user, result, childRequest);
   broadcastRequestUpdated(request);
   if (childRequest) {
-    notifyNewRequest(childRequest);
     broadcastRequestUpdated(childRequest);
   }
 
+  const rootId = result.rootId || requestId;
+  const rows = getSplitTreeForRender(db, rootId, user);
   const insertIds = childRequest ? [childRequest.id] : [];
   const removeIds = result.removedPoolChildIds || [];
+  const oobRequests = buildSplitOobRequests(
+    rows,
+    childRequest ? [rootId, childRequest.id] : [rootId]
+  );
 
   if (wantsPartial(req)) {
     res.set('HX-Trigger', 'modal-close');
-    const rows = childRequest ? [request, childRequest] : [request];
-    return renderRows(res, { requests: rows, insertIds, removeIds, user, oob: true });
+    return renderRows(res, { requests: oobRequests, insertIds, removeIds, user, oob: true });
   }
 
   return renderRows(res, {
-    requests: childRequest ? [request, childRequest] : [request],
+    requests: oobRequests,
     insertIds,
     removeIds,
     user,
@@ -1004,7 +1066,7 @@ router.post('/:id/take', requireRole('aff'), (req, res) => {
 router.get('/:id/release-modal', requireRole('aff'), (req, res) => {
   const db = getDb();
   const user = req.session.user;
-  const request = getRequestById(db, Number(req.params.id), user);
+  const request = getRequestById(db, parseRequestId(req.params.id), user);
 
   if (!canAffManageRequest(request, user)) {
     return res.status(403).end();
@@ -1018,7 +1080,7 @@ router.get('/:id/release-modal', requireRole('aff'), (req, res) => {
 
 router.post('/:id/release', requireRole('aff'), (req, res) => {
   const db = getDb();
-  const requestId = Number(req.params.id);
+  const requestId = parseRequestId(req.params.id);
   const user = req.session.user;
   const request = getRequestById(db, requestId, user);
 
@@ -1046,33 +1108,28 @@ router.post('/:id/release', requireRole('aff'), (req, res) => {
     });
   }
 
-  const rows = [];
-  const removeIds = [];
+  const rows = getSplitTreeForRender(db, result.rootId || requestId, user);
+  const removeIds = result.deleted ? [requestId] : [];
+  const oobIds = result.deleted
+    ? [result.rootId || requestId]
+    : [requestId, result.rootId || requestId];
+  const oobRequests = buildSplitOobRequests(rows, oobIds);
 
-  if (result.deleted && result.rootId) {
-    const root = getRequestById(db, result.rootId, user);
-    if (root) {
-      rows.push(root);
-      broadcastRequestUpdated(root);
-    }
-    removeIds.push(requestId);
-  } else {
-    const updated = getRequestById(db, requestId, user);
-    if (updated) rows.push(updated);
-    if (updated) broadcastRequestUpdated(updated);
+  if (rows.length) {
+    broadcastRequestUpdated(rows[0]);
   }
 
   if (wantsPartial(req)) {
     res.set('HX-Trigger', 'modal-close');
   }
 
-  return renderRows(res, { requests: rows, removeIds, user, oob: true });
+  return renderRows(res, { requests: oobRequests, removeIds, user, oob: true });
 });
 
 router.get('/:id/complete', requireRole('aff'), (req, res) => {
   const db = getDb();
   const user = req.session.user;
-  const request = getRequestById(db, Number(req.params.id), user);
+  const request = getRequestById(db, parseRequestId(req.params.id), user);
 
   if (!canCompleteRequest(request, user)) {
     return res.status(403).render('403', { title: 'Access denied' });
@@ -1088,7 +1145,7 @@ router.get('/:id/complete', requireRole('aff'), (req, res) => {
 
 router.post('/:id/complete', requireRole('aff'), (req, res) => {
   const db = getDb();
-  const requestId = Number(req.params.id);
+  const requestId = parseRequestId(req.params.id);
   const user = req.session.user;
   const request = getRequestById(db, requestId, user);
 
@@ -1170,19 +1227,24 @@ router.post('/:id/complete', requireRole('aff'), (req, res) => {
   const updated = getRequestById(db, requestId, user);
   notifyAssignmentDone(updated);
   broadcastRequestUpdated(updated);
-
-  const rows = [updated];
   if (result.rootClosedId) {
     const root = getRequestById(db, result.rootClosedId, user);
-    if (root) {
-      rows.unshift(root);
-      broadcastRequestUpdated(root);
-    }
+    if (root) broadcastRequestUpdated(root);
   }
+
+  const rows = getSplitTreeForRender(db, result.rootId || requestId, user);
+  const oobIds = [requestId];
+  if (result.rootId && String(result.rootId) !== String(requestId)) {
+    oobIds.push(result.rootId);
+  }
+  if (result.rootClosedId) {
+    oobIds.push(result.rootClosedId);
+  }
+  const oobRequests = buildSplitOobRequests(rows, oobIds);
 
   if (wantsPartial(req)) {
     res.set('HX-Trigger', 'modal-close');
-    return renderRows(res, { requests: rows, user, oob: true });
+    return renderRows(res, { requests: oobRequests, user, oob: true });
   }
 
   res.redirect(HOME);
@@ -1191,7 +1253,7 @@ router.post('/:id/complete', requireRole('aff'), (req, res) => {
 router.get('/:id/aff-edit-modal', requireRole('aff'), (req, res) => {
   const db = getDb();
   const user = req.session.user;
-  const request = getRequestById(db, Number(req.params.id), user);
+  const request = getRequestById(db, parseRequestId(req.params.id), user);
 
   if (!canAffManageRequest(request, user)) {
     return res.status(403).end();
@@ -1213,7 +1275,7 @@ router.get('/:id/aff-edit-modal', requireRole('aff'), (req, res) => {
 
 router.post('/:id/aff-fields', requireRole('aff'), (req, res) => {
   const db = getDb();
-  const requestId = Number(req.params.id);
+  const requestId = parseRequestId(req.params.id);
   const user = req.session.user;
   const request = getRequestById(db, requestId, user);
 
@@ -1280,11 +1342,16 @@ router.post('/:id/aff-fields', requireRole('aff'), (req, res) => {
   broadcastRequestUpdated(updated);
   if (rootRequest) broadcastRequestUpdated(rootRequest);
 
-  const rows = rootRequest ? [rootRequest, updated] : [updated];
+  const rows = getSplitTreeForRender(db, result.rootId || requestId, user);
+  const oobIds = [requestId];
+  if (result.rootId && String(result.rootId) !== String(requestId)) {
+    oobIds.push(result.rootId);
+  }
+  const oobRequests = buildSplitOobRequests(rows, oobIds);
 
   if (wantsPartial(req)) {
     res.set('HX-Trigger', 'modal-close');
-    return renderRows(res, { requests: rows, user, oob: true });
+    return renderRows(res, { requests: oobRequests, user, oob: true });
   }
 
   res.redirect(HOME);
@@ -1293,7 +1360,7 @@ router.post('/:id/aff-fields', requireRole('aff'), (req, res) => {
 router.get('/:id/complete-modal', requireRole('aff'), (req, res) => {
   const db = getDb();
   const user = req.session.user;
-  const request = getRequestById(db, Number(req.params.id), user);
+  const request = getRequestById(db, parseRequestId(req.params.id), user);
 
   if (!canCompleteRequest(request, user)) {
     return res.status(403).end();
@@ -1316,7 +1383,7 @@ router.get('/:id/complete-modal', requireRole('aff'), (req, res) => {
 router.get('/:id/reopen-modal', requireRole('aff'), (req, res) => {
   const db = getDb();
   const user = req.session.user;
-  const request = getRequestById(db, Number(req.params.id), user);
+  const request = getRequestById(db, parseRequestId(req.params.id), user);
 
   if (!canAffReopenRequest(request, user)) {
     return res.status(403).end();
@@ -1330,7 +1397,7 @@ router.get('/:id/reopen-modal', requireRole('aff'), (req, res) => {
 
 router.post('/:id/reopen', requireRole('aff'), (req, res) => {
   const db = getDb();
-  const requestId = Number(req.params.id);
+  const requestId = parseRequestId(req.params.id);
   const user = req.session.user;
   const request = getRequestById(db, requestId, user);
 
@@ -1355,21 +1422,19 @@ router.post('/:id/reopen', requireRole('aff'), (req, res) => {
 
   broadcastRequestUpdated(updated);
 
-  const rows = [updated];
-  if (result.rootId && result.rootId !== requestId) {
-    const root = getRequestById(db, result.rootId, user);
-    if (root) {
-      rows.unshift(root);
-      broadcastRequestUpdated(root);
-    }
+  const rows = getSplitTreeForRender(db, result.rootId || requestId, user);
+  const oobIds = [requestId];
+  if (result.rootId && String(result.rootId) !== String(requestId)) {
+    oobIds.push(result.rootId);
   }
+  const oobRequests = buildSplitOobRequests(rows, oobIds);
 
   if (wantsPartial(req)) {
     res.set('HX-Trigger', 'modal-close');
-    return renderRows(res, { requests: rows, user, oob: true });
+    return renderRows(res, { requests: oobRequests, user, oob: true });
   }
 
-  return renderRows(res, { requests: rows, user, oob: true });
+  return renderRows(res, { requests: oobRequests, user, oob: true });
 });
 
 module.exports = router;

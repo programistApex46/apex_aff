@@ -49,7 +49,7 @@ function geoTableLabel(geo) {
   const name = GEO_NAMES[normalized];
 
   if (name) {
-    return `${name} | ${normalized}`;
+    return `${normalized} | ${name}`;
   }
 
   return geo;
@@ -144,6 +144,11 @@ function buyerStageTeamClass(teamName) {
   return 'rh-buyer-stage--default';
 }
 
+function formatRequestDisplayId(request) {
+  const { formatRequestDisplayId: formatId } = require('./request-id');
+  return formatId(request);
+}
+
 function formatAffPrice(price) {
   if (price === null || price === undefined) return '';
   const raw = String(price).trim();
@@ -171,6 +176,7 @@ module.exports = {
   geoTableLabel,
   geoTableName,
   formatRequestDate,
+  formatRequestDisplayId,
   getCardDisplayStatus,
   formatRequestProgress,
   showCompletedDate,

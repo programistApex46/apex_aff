@@ -2,7 +2,7 @@
   </main>
 
   <dialog id="modal" class="modal">
-    <div class="modal-box">
+    <div class="modal-box" data-rh-motion-panel>
       <div id="modal-body"></div>
     </div>
     <form method="dialog" class="modal-backdrop">
@@ -11,7 +11,7 @@
   </dialog>
 
   <dialog id="note-modal" class="modal">
-    <div class="modal-box rh-note-modal">
+    <div class="modal-box rh-note-modal" data-rh-motion-panel>
       <div class="rh-modal-page-head rh-note-modal-head">
         <div class="rh-modal-page-head-text">
           <p class="rh-note-modal-kicker">Comment</p>
@@ -71,6 +71,7 @@
   <script src="/js/aff-mobile-nav.js"></script>
   <% } %>
   <script src="/js/shell.js"></script>
+  <script src="/js/aff-avatar-tip.js"></script>
   <script src="/js/request-quiz.js"></script>
   <script type="module" src="/js/webauthn-register.js"></script>
   <% if (typeof user !== 'undefined' && user && user.role === 'buyer') { %>

@@ -1,53 +1,201 @@
 (function () {
-  var STORAGE_KEY = 'rh-split-folders-collapsed';
+  var LEGACY_STORAGE_KEY = 'rh-split-folders-collapsed';
+  var splitEffectsFrame = 0;
+  var pendingSplitRoots = new Set();
+  var pendingSplitReunify = false;
+  var fullSyncFrame = 0;
 
-  function readCollapsed() {
+  function storageKey() {
+    var userId = document.body.getAttribute('data-rh-user-id') || '0';
+    return 'rh-split-folders-collapsed:' + userId;
+  }
+
+  function readAllScopes() {
     try {
-      return JSON.parse(sessionStorage.getItem(STORAGE_KEY) || '[]');
+      var raw = sessionStorage.getItem(storageKey());
+      if (!raw) {
+        var legacy = sessionStorage.getItem(LEGACY_STORAGE_KEY);
+        if (legacy) {
+          var legacyIds = JSON.parse(legacy);
+          if (Array.isArray(legacyIds)) {
+            return { all: legacyIds };
+          }
+        }
+        return {};
+      }
+      var parsed = JSON.parse(raw);
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
     } catch (_err) {
-      return [];
+      return {};
     }
   }
 
-  function writeCollapsed(ids) {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
+  function readCollapsed(scope) {
+    var all = readAllScopes();
+    var ids = all[scope];
+    return Array.isArray(ids) ? ids : [];
   }
 
-  function splitFolderRootId(node) {
-    if (!node) return null;
-    if (node.getAttribute('data-is-split-root') === '1') {
-      return String(node.getAttribute('data-id') || '');
-    }
-    var splitRoot = node.getAttribute('data-split-root');
-    return splitRoot ? String(splitRoot) : null;
+  function writeCollapsed(scope, ids) {
+    var all = readAllScopes();
+    all[scope] = ids;
+    sessionStorage.setItem(storageKey(), JSON.stringify(all));
   }
 
   function folderChildSelector(rootId) {
     return '[data-split-root="' + rootId + '"][data-is-subtask="1"]';
   }
 
-  function setFolderExpanded(rootId, expanded) {
-    if (!rootId) return;
+  function domNode(prefix, id, container) {
+    var slug =
+      typeof window.rhRequestDomSlug === 'function' ? window.rhRequestDomSlug(id) : String(id);
+    var nodeId = prefix + slug;
 
-    var rootRow = document.getElementById('request-row-' + rootId);
-    var rootCard = document.getElementById('request-card-' + rootId);
-    [rootRow, rootCard].forEach(function (node) {
-      if (!node) return;
-      node.classList.toggle('rh-split-folder--collapsed', !expanded);
-      var toggle = node.querySelector('.rh-split-folder-toggle');
-      if (toggle) toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    if (container) {
+      var byId = container.querySelector('#' + nodeId);
+      if (byId) return byId;
+      var tag = prefix === 'request-row-' ? 'tr' : '.rh-request-card';
+      return container.querySelector(tag + '[data-id="' + id + '"]');
+    }
+
+    return document.getElementById(nodeId);
+  }
+
+  function getViewScope(node) {
+    if (!node) return 'default';
+    var panel = node.closest('.rh-desk-slider-panel[data-desk]');
+    if (panel) return panel.getAttribute('data-desk') || 'all';
+    if (node.closest('#requests-body')) return 'table';
+    if (node.closest('#requests-cards-mobile')) return 'cards';
+    return 'default';
+  }
+
+  function getActiveScopes() {
+    var scopes = [];
+    var seen = new Set();
+
+    function add(scope) {
+      if (!scope || seen.has(scope)) return;
+      seen.add(scope);
+      scopes.push(scope);
+    }
+
+    if (document.getElementById('requests-body')) add('table');
+    if (document.getElementById('rh-desk-slider')) {
+      document.querySelectorAll('.rh-desk-slider-panel[data-desk]').forEach(function (panel) {
+        add(panel.getAttribute('data-desk') || 'all');
+      });
+    } else if (document.getElementById('requests-cards-mobile')) {
+      add('cards');
+    }
+
+    if (!scopes.length) add('default');
+    return scopes;
+  }
+
+  function containerForScope(scope) {
+    if (scope === 'table') {
+      return { container: document.getElementById('requests-body'), row: true };
+    }
+
+    if (scope === 'cards') {
+      return { container: document.getElementById('requests-cards-mobile'), row: false };
+    }
+
+    var panel = document.querySelector('.rh-desk-slider-panel[data-desk="' + scope + '"]');
+    if (panel) {
+      return { container: panel.querySelector('.rh-cards-list'), row: false };
+    }
+
+    if (scope === 'default' || scope === 'all') {
+      return { container: document.getElementById('requests-cards-mobile'), row: false };
+    }
+
+    return { container: null, row: false };
+  }
+
+  function scopeHasRoot(scope, rootId) {
+    var cfg = containerForScope(scope);
+    if (!cfg.container) return false;
+    var prefix = cfg.row ? 'request-row-' : 'request-card-';
+    return !!domNode(prefix, rootId, cfg.container);
+  }
+
+  function applyFolderStateToNode(node, expanded) {
+    if (!node) return;
+    node.classList.toggle('rh-split-folder--collapsed', !expanded);
+    var toggle = node.querySelector('.rh-split-folder-toggle');
+    if (toggle) toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+  }
+
+  function applyFolderStateToChild(node, expanded) {
+    if (!node) return;
+    node.classList.toggle('rh-split-folder-child--hidden', !expanded);
+    if (!expanded) node.setAttribute('hidden', '');
+    else node.removeAttribute('hidden');
+  }
+
+  function markFolderGroupEdges(rootId, scope) {
+    var cfg = containerForScope(scope);
+    var container = cfg.container;
+    if (!container) return;
+
+    var prefix = cfg.row ? 'request-row-' : 'request-card-';
+    var rootNode = domNode(prefix, rootId, container);
+    if (!rootNode) return;
+
+    var members = [rootNode];
+    container.querySelectorAll(folderChildSelector(rootId)).forEach(function (child) {
+      members.push(child);
     });
 
-    document.querySelectorAll(folderChildSelector(rootId)).forEach(function (child) {
-      child.classList.toggle('rh-split-folder-child--hidden', !expanded);
-      if (!expanded) {
-        child.setAttribute('hidden', '');
-      } else {
-        child.removeAttribute('hidden');
+    members.forEach(function (node) {
+      node.classList.remove('rh-split-folder-edge-first', 'rh-split-folder-edge-last');
+    });
+
+    var visibleMembers = members.filter(function (node) {
+      if (node === rootNode) {
+        return node.offsetParent !== null || !node.classList.contains('rh-split-folder-child--hidden');
       }
+      if (node.hidden || node.classList.contains('rh-split-folder-child--hidden')) return false;
+      return !(node.offsetParent === null && node.style.display === 'none');
     });
 
-    markFolderGroupEdges(rootId);
+    if (!visibleMembers.length) return;
+    visibleMembers[0].classList.add('rh-split-folder-edge-first');
+    visibleMembers[visibleMembers.length - 1].classList.add('rh-split-folder-edge-last');
+  }
+
+  function setFolderExpanded(rootId, expanded, options) {
+    options = options || {};
+    if (!rootId || !options.scope) return;
+
+    var cfg = containerForScope(options.scope);
+    var container = cfg.container;
+    if (!container) return;
+
+    var prefix = cfg.row ? 'request-row-' : 'request-card-';
+    var root = domNode(prefix, rootId, container);
+    if (!root) return;
+
+    applyFolderStateToNode(root, expanded);
+    container.querySelectorAll(folderChildSelector(rootId)).forEach(function (child) {
+      applyFolderStateToChild(child, expanded);
+    });
+
+    if (options.markEdges !== false) markFolderGroupEdges(rootId, options.scope);
+  }
+
+  function syncSplitFolderForRoot(rootId) {
+    if (!rootId) return;
+    getActiveScopes().forEach(function (scope) {
+      if (!scopeHasRoot(scope, rootId)) return;
+      var collapsed = readCollapsed(scope);
+      setFolderExpanded(String(rootId), collapsed.indexOf(String(rootId)) === -1, {
+        scope: scope,
+        markEdges: true,
+      });
+    });
   }
 
   function syncSplitFolderFilters() {
@@ -56,62 +204,88 @@
     }
   }
 
-  function markFolderGroupEdges(rootId) {
-    var members = [];
-    var rootRow = document.getElementById('request-row-' + rootId);
-    var rootCard = document.getElementById('request-card-' + rootId);
-    if (rootRow) members.push(rootRow);
-    if (rootCard) members.push(rootCard);
-    document.querySelectorAll(folderChildSelector(rootId)).forEach(function (child) {
-      members.push(child);
-    });
+  function syncSplitFolders() {
+    var seenRoots = new Set();
 
-    members.forEach(function (node) {
-      node.classList.remove('rh-split-folder-edge-first', 'rh-split-folder-edge-last');
-    });
-
-    ['requests-body', 'requests-cards-mobile'].forEach(function (containerId) {
-      var container = document.getElementById(containerId);
+    getActiveScopes().forEach(function (scope) {
+      var cfg = containerForScope(scope);
+      var container = cfg.container;
       if (!container) return;
 
-      var isTable = containerId === 'requests-body';
-      var rootNode = document.getElementById((isTable ? 'request-row-' : 'request-card-') + rootId);
-      if (!rootNode || !container.contains(rootNode)) return;
-
-      var visibleMembers = [];
-      if (rootNode.offsetParent !== null || !rootNode.classList.contains('rh-split-folder-child--hidden')) {
-        visibleMembers.push(rootNode);
-      }
-
-      container.querySelectorAll(folderChildSelector(rootId)).forEach(function (child) {
-        if (child.hidden || child.classList.contains('rh-split-folder-child--hidden')) return;
-        if (child.offsetParent === null && child.style.display === 'none') return;
-        visibleMembers.push(child);
+      var collapsed = readCollapsed(scope);
+      container.querySelectorAll('[data-is-split-root="1"]').forEach(function (root) {
+        var rootId = String(root.getAttribute('data-id') || '');
+        if (!rootId) return;
+        seenRoots.add(rootId + ':' + scope);
+        setFolderExpanded(rootId, collapsed.indexOf(rootId) === -1, { scope: scope, markEdges: false });
       });
+    });
 
-      if (!visibleMembers.length) return;
-      visibleMembers[0].classList.add('rh-split-folder-edge-first');
-      visibleMembers[visibleMembers.length - 1].classList.add('rh-split-folder-edge-last');
+    seenRoots.forEach(function (key) {
+      var parts = key.split(':');
+      markFolderGroupEdges(parts[0], parts.slice(1).join(':'));
     });
   }
 
-  function syncSplitFolders() {
-    var collapsed = readCollapsed();
-    document.querySelectorAll('[data-is-split-root="1"]').forEach(function (root) {
-      var rootId = String(root.getAttribute('data-id') || '');
-      if (!rootId) return;
-      setFolderExpanded(rootId, collapsed.indexOf(rootId) === -1);
+  function scheduleFullSplitSync() {
+    if (fullSyncFrame) return;
+    fullSyncFrame = requestAnimationFrame(function () {
+      fullSyncFrame = 0;
+      syncSplitFolders();
     });
   }
 
-  function expandSplitFolder(rootId) {
+  function scheduleSplitEffects() {
+    if (splitEffectsFrame) return;
+    splitEffectsFrame = requestAnimationFrame(function () {
+      splitEffectsFrame = 0;
+      if (pendingSplitReunify && typeof window.rhReunifySplitGroups === 'function') {
+        window.rhReunifySplitGroups();
+      }
+      pendingSplitReunify = false;
+      pendingSplitRoots.forEach(function (rootId) {
+        syncSplitFolderForRoot(rootId);
+      });
+      pendingSplitRoots.clear();
+    });
+  }
+
+  function queueSplitFolderSync(rootId) {
     if (!rootId) return;
-    var collapsed = readCollapsed();
-    var idx = collapsed.indexOf(String(rootId));
-    if (idx === -1) return;
-    collapsed.splice(idx, 1);
-    writeCollapsed(collapsed);
-    setFolderExpanded(String(rootId), true);
+    var id = String(rootId);
+    var slash = id.indexOf('/');
+    if (slash !== -1) id = id.slice(0, slash);
+    pendingSplitRoots.add(id);
+    scheduleSplitEffects();
+  }
+
+  function queueSplitReunify() {
+    pendingSplitReunify = true;
+    scheduleSplitEffects();
+  }
+
+  function expandSplitFolder(rootId, contextNode) {
+    if (!rootId) return;
+
+    var scopes = [];
+    if (contextNode) {
+      scopes.push(getViewScope(contextNode));
+    } else {
+      scopes = getActiveScopes().filter(function (scope) {
+        return scopeHasRoot(scope, rootId);
+      });
+    }
+
+    scopes.forEach(function (scope) {
+      if (!scopeHasRoot(scope, rootId)) return;
+      var collapsed = readCollapsed(scope);
+      var idx = collapsed.indexOf(String(rootId));
+      if (idx === -1) return;
+      collapsed.splice(idx, 1);
+      writeCollapsed(scope, collapsed);
+      setFolderExpanded(String(rootId), true, { scope: scope });
+    });
+
     syncSplitFolderFilters();
   }
 
@@ -125,22 +299,26 @@
     var rootId = toggle.getAttribute('data-rh-split-folder');
     if (!rootId) return;
 
-    var collapsed = readCollapsed();
+    var scope = getViewScope(toggle);
+    var collapsed = readCollapsed(scope);
     var idx = collapsed.indexOf(String(rootId));
     if (idx === -1) {
       collapsed.push(String(rootId));
-      writeCollapsed(collapsed);
-      setFolderExpanded(String(rootId), false);
+      writeCollapsed(scope, collapsed);
+      setFolderExpanded(String(rootId), false, { scope: scope });
       return;
     }
 
     collapsed.splice(idx, 1);
-    writeCollapsed(collapsed);
-    setFolderExpanded(String(rootId), true);
+    writeCollapsed(scope, collapsed);
+    setFolderExpanded(String(rootId), true, { scope: scope });
     syncSplitFolderFilters();
   });
 
-  window.rhSyncSplitFolders = syncSplitFolders;
+  window.rhSyncSplitFolders = scheduleFullSplitSync;
+  window.rhSyncSplitFolderForRoot = syncSplitFolderForRoot;
+  window.rhQueueSplitFolderSync = queueSplitFolderSync;
+  window.rhQueueSplitReunify = queueSplitReunify;
   window.rhExpandSplitFolder = expandSplitFolder;
 
   if (document.readyState === 'loading') {
@@ -149,6 +327,26 @@
     syncSplitFolders();
   }
 
-  document.body.addEventListener('htmx:afterSwap', syncSplitFolders);
-  document.body.addEventListener('htmx:oobAfterSwap', syncSplitFolders);
+  document.body.addEventListener('htmx:afterSwap', function (evt) {
+    var target = evt.detail && evt.detail.target;
+    if (!target) return;
+    if (target.id === 'modal-body') return;
+    if (
+      target.id === 'requests-main'
+      || target.id === 'requests-cards-mobile'
+      || target.id === 'requests-body'
+      || target.id === 'rh-page'
+    ) {
+      scheduleFullSplitSync();
+    }
+  });
+
+  document.body.addEventListener('htmx:oobAfterSwap', function () {
+    if (document.getElementById('rh-desk-slider')) {
+      scheduleFullSplitSync();
+      return;
+    }
+    queueSplitReunify();
+    scheduleFullSplitSync();
+  });
 })();

@@ -5,17 +5,18 @@
   <div class="rh-modal-page-head">
     <div class="rh-modal-page-head-text">
       <h3 class="rh-modal-sheet-title">Take request</h3>
-      <p class="rh-muted text-sm mt-1">Request #<%= request.id %> · <%= availableLeads %> leads available</p>
+      <p class="rh-muted text-sm mt-1">Request #<%= formatRequestDisplayId(request) %> · <%= availableLeads %> leads available</p>
     </div>
     <%- include('modal-close') %>
   </div>
 
   <form
     method="post"
-    action="/<%= request.id %>/take"
+    action="/<%= encodeRequestPath(request.id) %>/take"
     class="rh-modal-page-form flex flex-col"
-    hx-post="/<%= request.id %>/take"
+    hx-post="/<%= encodeRequestPath(request.id) %>/take"
     hx-swap="none"
+    hx-on::before-request="window.closeRequestModal(true)"
   >
     <div class="rh-modal-page-body">
       <% if (error) { %>

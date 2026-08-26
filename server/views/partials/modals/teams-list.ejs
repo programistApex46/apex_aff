@@ -44,7 +44,8 @@
                   <button
                     type="button"
                     class="btn btn-xs btn-square icon-btn rh-table-action-btn rh-table-action-edit"
-                    title="Edit"
+                    data-rh-cursor-tip="Edit team"
+                    aria-label="Edit team"
                     hx-get="/teams/<%= t.id %>/edit-modal"
                     hx-target="#modal-body"
                     hx-swap="innerHTML"
@@ -55,7 +56,8 @@
                     <button
                       type="button"
                       class="btn btn-xs btn-square icon-btn rh-table-action-btn rh-table-action-danger"
-                      title="Deactivate"
+                      data-rh-cursor-tip="Deactivate team"
+                      aria-label="Deactivate team"
                       hx-post="/teams/<%= t.id %>/delete"
                       hx-target="#modal-body"
                       hx-swap="innerHTML"
@@ -67,7 +69,8 @@
                     <button
                       type="button"
                       class="btn btn-xs btn-square icon-btn rh-table-action-btn rh-table-action-complete"
-                      title="Restore"
+                      data-rh-cursor-tip="Restore team"
+                      aria-label="Restore team"
                       hx-post="/teams/<%= t.id %>/restore"
                       hx-target="#modal-body"
                       hx-swap="innerHTML"

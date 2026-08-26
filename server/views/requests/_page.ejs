@@ -10,6 +10,7 @@
             aria-expanded="false"
             aria-controls="rh-mobile-filters-sheet"
             aria-label="Search and filters"
+            data-rh-tip="Search and filters"
           >
             <%- include('../partials/icon', { name: 'sliders', className: 'w-4 h-4' }) %>
           </button>
@@ -22,7 +23,8 @@
             id="rh-mobile-sort-btn"
             aria-expanded="false"
             aria-controls="rh-mobile-sort-sheet"
-            aria-label="Sort"
+            aria-label="Sort requests"
+            data-rh-tip="Sort requests"
           >
             <%- include('../partials/icon', { name: 'arrow-up-down', className: 'w-4 h-4' }) %>
           </button>
@@ -53,14 +55,14 @@
             autocomplete="off"
             enterkeyhint="search"
           >
-          <button type="button" class="rh-mobile-search-clear" id="requests-search-mobile-clear" hidden aria-label="Clear">
+          <button type="button" class="rh-mobile-search-clear" id="requests-search-mobile-clear" hidden aria-label="Clear search" title="Clear search">
             <%- include('../partials/icon', { name: 'x', className: 'w-4 h-4' }) %>
           </button>
         </div>
       </div>
       <div class="rh-mobile-filters-sheet-body" id="rh-mobile-filters-body"></div>
       <div class="rh-mobile-filters-sheet-foot">
-          <button type="button" class="rh-mobile-filters-done" id="rh-mobile-filters-done">Apply</button>
+          <button type="button" class="rh-mobile-filters-done" id="rh-mobile-filters-done" title="Apply selected filters">Apply</button>
       </div>
       </div>
     </div>
@@ -76,30 +78,13 @@
         </div>
         <div class="rh-mobile-sort-sheet-body" id="rh-mobile-sort-body"></div>
         <div class="rh-mobile-sort-sheet-foot">
-          <button type="button" class="rh-mobile-sort-done" id="rh-mobile-sort-done">Apply</button>
+          <button type="button" class="rh-mobile-sort-done" id="rh-mobile-sort-done" title="Apply sort settings">Apply</button>
         </div>
       </div>
     </div>
 
-    <div id="requests-empty" class="rh-card rh-card-padded text-center"<% if (totalCount > 0) { %> hidden<% } %>>
-      <div class="rh-icon-box rh-icon-box-lg mx-auto mb-4">
-        <%- include('../partials/icon', { name: 'clipboard', className: 'w-7 h-7' }) %>
-      </div>
-      <p class="rh-secondary text-lg mb-1">No requests yet</p>
-      <p class="rh-muted text-sm">New requests will appear here.</p>
-      <% if (user && user.role === 'buyer') { %>
-        <button
-          type="button"
-          class="btn btn-create-request btn-sm mt-5 icon-btn"
-          onclick="openRequestCreate()"
-        >
-          <%- include('../partials/icon', { name: 'plus', className: 'w-4 h-4' }) %>
-          New request
-        </button>
-      <% } %>
-    </div>
-
     <%- include('_toolbar', { user, totalCount, filters, filterOptions, hasActiveFilters, sort, cardSortOptions, perPageOptions, pagination, clearListUrl }) %>
+    <%- include('_col-picker', { pickerMode: 'modal' }) %>
 
     <div
       id="requests-stage"
@@ -110,7 +95,7 @@
         <%- include('_loader') %>
       <% } %>
       <div id="requests-main">
-        <%- include('_main', { user, requests, statusBadgeClass, totalCount, filteredCount, filters, filterOptions, hasActiveFilters, sort, cardSortOptions, sortToggleUrl, sortToggleListUrl, isSortActive, clearListUrl, pagination, paginationUrl, paginationListUrl }) %>
+        <%- include('_main', { user, requests, statusBadgeClass, totalCount, filteredCount, filters, filterOptions, hasActiveFilters, sort, cardSortOptions, sortToggleUrl, sortToggleListUrl, isSortActive, clearListUrl, pagination, paginationUrl, paginationListUrl, perPageOptions }) %>
       </div>
     </div>
 
@@ -125,7 +110,9 @@
     </script>
     <script src="/js/requests-list-loader.js"></script>
     <script src="/js/request-row-tooltip.js"></script>
+    <script src="/js/request-id.js"></script>
     <script src="/js/split-folders.js"></script>
     <script src="/js/requests-sse.js"></script>
     <script src="/js/requests-table-resize.js"></script>
+    <script src="/js/vendor/sortable.min.js"></script>
     <script src="/js/requests-columns.js"></script>

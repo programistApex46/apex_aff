@@ -1,4 +1,4 @@
-<div class="rh-cards-mobile" id="requests-cards-mobile-panel"<% if (totalCount === 0) { %> hidden<% } %>>
+<div class="rh-cards-mobile" id="requests-cards-mobile-panel">
   <div id="requests-filtered-empty-mobile" class="rh-filtered-empty"<% if (typeof filteredCount === 'undefined' || filteredCount > 0 || !hasActiveFilters) { %> hidden<% } %>>
     <p class="rh-secondary mb-1">No requests match your filters</p>
     <a
@@ -19,8 +19,4 @@
       <%- include('../partials/request-card', { request, user, error: null }) %>
     <% }) %>
   </div>
-
-  <% if (typeof pagination !== 'undefined' && pagination.totalPages > 1) { %>
-    <%- include('_pagination', { pagination, paginationUrl, paginationListUrl }) %>
-  <% } %>
 </div>

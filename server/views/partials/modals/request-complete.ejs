@@ -3,7 +3,7 @@
     <div class="rh-modal-page-head-text">
       <h3 class="rh-modal-sheet-title">Complete</h3>
       <p class="rh-muted text-sm mt-1">
-        Request #<%= request.id %> · <%= request.quantity %> lead<%= request.quantity === 1 ? '' : 's' %>
+        Request #<%= formatRequestDisplayId(request) %> · <%= request.quantity %> lead<%= request.quantity === 1 ? '' : 's' %>
       </p>
     </div>
     <%- include('modal-close') %>
@@ -12,10 +12,11 @@
   <form
     id="request-complete-form"
     method="post"
-    action="/<%= request.id %>/complete"
+    action="/<%= encodeRequestPath(request.id) %>/complete"
     class="rh-modal-page-form"
-    hx-post="/<%= request.id %>/complete"
+    hx-post="/<%= encodeRequestPath(request.id) %>/complete"
     hx-swap="none"
+    hx-on::before-request="window.closeRequestModal(true)"
     novalidate
   >
     <div class="rh-modal-page-body">

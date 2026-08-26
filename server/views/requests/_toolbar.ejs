@@ -15,7 +15,7 @@
         <%- include('_filters', { filters, filterOptions, hasActiveFilters, user, sort, clearListUrl }) %>
       </div>
       <div class="rh-requests-toolbar-sort" id="rh-desktop-sort-slot">
-        <%- include('_sort-control', { sort, cardSortOptions, perPageOptions, pagination }) %>
+        <%- include('_sort-control', { sort, cardSortOptions }) %>
       </div>
       <%- include('_col-picker') %>
     </div>
@@ -25,5 +25,4 @@
       </div>
     <% } %>
   </div>
-  <%- include('_col-picker', { pickerMode: 'panel' }) %>
 </div>

@@ -18,6 +18,7 @@
         { key: 'geo', label: 'GEO' },
         { key: 'language', label: 'Lang' },
         { key: 'quantity', label: 'Cap' },
+        { key: 'cap_agreed', label: 'Agreed' },
         { key: 'funnel', label: 'Funnel' },
         { key: 'comment', label: 'Note' },
       ],
@@ -42,41 +43,71 @@
     class="rh-col-picker-btn"
     id="requests-col-btn"
     aria-expanded="false"
-    aria-controls="requests-col-picker"
-    aria-haspopup="true"
-    title="Table settings"
+    aria-controls="requests-col-modal"
+    aria-haspopup="dialog"
+    data-rh-tip="Manage column visibility and order"
+    aria-label="Manage column visibility and order"
   >
     <%- include('../partials/icon', { name: 'cog', className: 'w-4 h-4' }) %>
-    <span class="sr-only">Table settings</span>
+    <span class="sr-only">Manage column visibility and order</span>
     <span class="rh-col-picker-btn-dot" id="requests-col-btn-dot" hidden></span>
   </button>
 </div>
-<% } else { %>
-<div class="rh-col-picker" id="requests-col-picker" hidden>
-  <% colGroups.forEach(function (group) { %>
-    <div class="rh-col-picker-group" data-col-group="<%= group.id %>">
-      <button
-        type="button"
-        class="rh-col-picker-label"
-        data-col-group-toggle="<%= group.id %>"
-        title="Toggle <%= group.label.toLowerCase() %> columns"
-      ><%= group.label %></button>
-      <div class="rh-col-picker-items">
-        <% group.items.forEach(function (item) { %>
-          <button
-            type="button"
-            class="rh-col-chip is-on"
-            data-col-toggle="<%= item.key %>"
-            aria-pressed="true"
-          ><%= item.label %></button>
-        <% }) %>
+<% } else if (pickerMode === 'modal') { %>
+<dialog id="requests-col-modal" class="modal">
+  <div class="modal-box rh-col-picker-modal" data-rh-motion-panel>
+    <div class="rh-modal-page rh-col-picker-page">
+      <div class="rh-modal-page-head rh-col-picker-modal-head">
+        <div class="rh-modal-page-head-text">
+          <h3 class="rh-modal-sheet-title">Columns</h3>
+          <p class="rh-muted text-sm mt-1">Toggle visibility and drag to reorder table columns.</p>
+        </div>
+        <button type="button" class="rh-modal-close" id="requests-col-modal-close" title="Close" aria-label="Close">
+          <%- include('../partials/icon', { name: 'x', className: 'w-5 h-5' }) %>
+        </button>
+      </div>
+      <div class="rh-col-picker-modal-body">
+        <div class="rh-col-picker" id="requests-col-picker">
+          <div class="rh-col-picker-list" id="requests-col-order-list">
+            <% colGroups.forEach(function (group) {
+              group.items.forEach(function (item) { %>
+              <div class="rh-col-picker-row" data-col-key="<%= item.key %>" data-col-group="<%= group.id %>">
+                <span class="rh-col-drag-handle" aria-hidden="true">
+                  <%- include('../partials/icon', { name: 'menu', className: 'w-4 h-4' }) %>
+                </span>
+                <span class="rh-col-picker-row-meta"><%= group.label %></span>
+                <span class="rh-col-chip is-on"><%= item.label %></span>
+                <button
+                  type="button"
+                  class="rh-col-visibility-btn"
+                  data-col-toggle="<%= item.key %>"
+                  aria-pressed="true"
+                  aria-label="Hide <%= item.label %> column"
+                  data-rh-tip="Hide <%= item.label %> column"
+                >
+                  <span class="rh-col-visibility-icon rh-col-visibility-icon--shown" aria-hidden="true">
+                    <%- include('../partials/icon', { name: 'eye', className: 'w-4 h-4' }) %>
+                  </span>
+                  <span class="rh-col-visibility-icon rh-col-visibility-icon--hidden" aria-hidden="true" hidden>
+                    <%- include('../partials/icon', { name: 'eye-off', className: 'w-4 h-4' }) %>
+                  </span>
+                </button>
+              </div>
+            <% }); }); %>
+          </div>
+        </div>
+        <div class="rh-col-picker-modal-foot">
+          <button type="button" class="rh-profile-text-action rh-col-picker-reset" id="requests-col-reset" hidden data-rh-tip="Reset columns to default visibility and order" aria-label="Reset columns to default visibility and order">Reset columns</button>
+        </div>
       </div>
     </div>
-  <% }) %>
-  <button type="button" class="rh-col-picker-reset" id="requests-col-reset" hidden>Show all</button>
-</div>
+  </div>
+  <form method="dialog" class="modal-backdrop">
+    <button type="submit">close</button>
+  </form>
+</dialog>
 <div class="rh-col-context" id="requests-col-menu" hidden role="menu" aria-label="Column">
-  <button type="button" class="rh-col-context-item" id="requests-col-hide" role="menuitem">
+  <button type="button" class="rh-col-context-item" id="requests-col-hide" role="menuitem" data-rh-tip="Hide this column" aria-label="Hide this column">
     <span class="rh-col-context-icon" aria-hidden="true">
       <%- include('../partials/icon', { name: 'eye-off', className: 'w-4 h-4' }) %>
     </span>

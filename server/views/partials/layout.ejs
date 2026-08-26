@@ -30,20 +30,13 @@
   <script src="/js/vendor/motion.js"></script>
   <script src="/js/rh-motion.js?v=5"></script>
 </head>
-<body class="min-h-screen flex flex-col<%= user && user.role === 'admin' ? ' rh-admin-user' : '' %><%= user && user.role === 'aff' ? ' rh-aff-user' : '' %><%= user && user.role === 'buyer' ? ' rh-buyer-user' : '' %><%= user && user.role === 'teamlead' ? ' rh-tl-user' : '' %><%= typeof bodyClass !== 'undefined' && bodyClass ? ' ' + bodyClass : '' %>">
+<body class="min-h-screen flex flex-col<%= user && user.role === 'admin' ? ' rh-admin-user' : '' %><%= user && user.role === 'aff' ? ' rh-aff-user' : '' %><%= user && user.role === 'buyer' ? ' rh-buyer-user' : '' %><%= user && user.role === 'teamlead' ? ' rh-tl-user' : '' %><%= typeof bodyClass !== 'undefined' && bodyClass ? ' ' + bodyClass : '' %>"<% if (typeof user !== 'undefined' && user && user.id) { %> data-rh-user-id="<%= user.id %>"<% } %>>
 <% if (typeof bare === 'undefined' || !bare) { %>
   <header class="rh-topbar<%= user && user.role === 'aff' ? ' rh-topbar-aff' : '' %><%= user && user.role === 'buyer' ? ' rh-topbar-buyer' : '' %><%= user && user.role === 'teamlead' ? ' rh-topbar-tl' : '' %>">
     <div class="rh-topbar-left">
-      <a href="/" class="btn btn-ghost btn-sm btn-square" title="Home" <%- include('app-nav', { url: '/' }) %>>
-        <%- include('icon', { name: 'home', className: 'w-5 h-5' }) %>
-      </a>
-      <span class="rh-topbar-brand flex items-center gap-2 shrink-0">
+      <a href="/" class="rh-topbar-brand flex items-center gap-2 shrink-0" title="Request Hub" <%- include('app-nav', { url: '/' }) %>>
         <img src="/logo.png" alt="Request Hub" class="h-8 w-auto">
-      </span>
-      <div class="rh-page-badge hidden sm:flex">
-        <%- include('icon', { name: typeof pageIcon !== 'undefined' ? pageIcon : 'clipboard', className: 'w-4 h-4' }) %>
-        <span><%= typeof pageTitle !== 'undefined' ? pageTitle : title %></span>
-      </div>
+      </a>
     </div>
   <% if (user && user.role === 'aff' && typeof affMobileNav !== 'undefined') { %>
       <div class="rh-mobile-aff-dock">

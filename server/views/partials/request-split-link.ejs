@@ -8,7 +8,7 @@
 %>
 <% if (inline) { %>
   <a
-    href="#request-row-<%= rootId %>"
+    href="#request-row-<%= requestDomSlug(rootId) %>"
     class="rh-request-split-link rh-request-split-link--inline"
     data-rh-split-target="<%= rootId %>"
     title="<%= title %>"
@@ -18,7 +18,7 @@
   <span class="rh-request-split-from-label<%= compact ? ' rh-request-split-from-label--compact' : '' %>">
     <% if (!compact) { %><span class="rh-request-split-from-text">from</span><% } else { %><span class="rh-request-split-from-arrow" aria-hidden="true">↳</span><% } %>
     <a
-      href="#request-row-<%= rootId %>"
+      href="#request-row-<%= requestDomSlug(rootId) %>"
       class="rh-request-split-link<%= compact ? ' rh-request-split-link--compact' : '' %>"
       data-rh-split-target="<%= rootId %>"
       title="<%= title %>"

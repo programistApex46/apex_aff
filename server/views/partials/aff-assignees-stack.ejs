@@ -1,0 +1,14 @@
+<% if (assignees && assignees.length) { %>
+  <span
+    class="rh-aff-assignees"
+    aria-label="<%= assignees.map(function (aff) { return aff.stage; }).join(', ') %>"
+  >
+    <% assignees.forEach(function (aff) { %>
+      <%- include('aff-user-tag', {
+        stage: aff.stage,
+        avatarPath: aff.avatar_path,
+        avatarClass: typeof avatarClass !== 'undefined' ? avatarClass : 'rh-avatar-sm'
+      }) %>
+    <% }) %>
+  </span>
+<% } %>

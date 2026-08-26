@@ -5,43 +5,68 @@
   }
   window.__rhRequestsTableResizeBound = true;
 
-  var STORAGE_KEY = 'rh-requests-col-widths-v15';
-  var LEGACY_STORAGE_KEYS = ['rh-requests-col-widths-v14', 'rh-requests-col-widths-v13', 'rh-requests-col-widths-v12', 'rh-requests-col-widths-v11', 'rh-requests-col-widths-v10', 'rh-requests-col-widths-v9', 'rh-requests-col-widths-v8', 'rh-requests-col-widths-v7', 'rh-requests-col-widths-v6', 'rh-requests-col-widths-v5', 'rh-requests-col-widths-v4', 'rh-requests-col-widths-v3', 'rh-requests-col-widths-v2', 'rh-requests-col-widths'];
+  var STORAGE_KEY = 'rh-requests-col-widths-v24';
+  var LEGACY_STORAGE_KEYS = ['rh-requests-col-widths-v23', 'rh-requests-col-widths-v22', 'rh-requests-col-widths-v21', 'rh-requests-col-widths-v20', 'rh-requests-col-widths-v19', 'rh-requests-col-widths-v18', 'rh-requests-col-widths-v17', 'rh-requests-col-widths-v16', 'rh-requests-col-widths-v15', 'rh-requests-col-widths-v14', 'rh-requests-col-widths-v13', 'rh-requests-col-widths-v12', 'rh-requests-col-widths-v11', 'rh-requests-col-widths-v10', 'rh-requests-col-widths-v9', 'rh-requests-col-widths-v8', 'rh-requests-col-widths-v7', 'rh-requests-col-widths-v6', 'rh-requests-col-widths-v5', 'rh-requests-col-widths-v4', 'rh-requests-col-widths-v3', 'rh-requests-col-widths-v2', 'rh-requests-col-widths'];
   var MIN_WIDTH = 40;
   var MIN_ACTIONS_WIDTH = 120;
   var DESKTOP_QUERY = '(min-width: 768px)';
   var DEFAULT_WIDTHS = {
-    id: 88,
+    id: 120,
     created_at: 104,
     company: 56,
-    team: 50,
-    stage: 96,
-    geo: 112,
+    team: 40,
+    stage: 52,
+    geo: 68,
     language: 40,
     quantity: 52,
+    cap_agreed: 52,
     funnel: 68,
-    comment: 84,
-    aff: 128,
-    partner: 88,
-    aff_cap: 52,
-    aff_wh: 52,
-    aff_price: 64,
+    comment: 60,
+    aff: 40,
+    partner: 76,
+    aff_cap: 48,
+    aff_wh: 48,
+    aff_price: 56,
     actions: 128,
   };
 
   function sanitizeWidths(widths) {
-    if (!widths || !widths.id) return widths;
-    if (widths.id > DEFAULT_WIDTHS.id) {
-      widths.id = DEFAULT_WIDTHS.id;
+    if (!widths) return widths;
+
+    if (widths.id) {
+      if (widths.id > DEFAULT_WIDTHS.id) {
+        widths.id = DEFAULT_WIDTHS.id;
+      }
+      if (widths.id < DEFAULT_WIDTHS.id) {
+        widths.id = DEFAULT_WIDTHS.id;
+      }
     }
-    if (widths.id < DEFAULT_WIDTHS.id) {
-      widths.id = DEFAULT_WIDTHS.id;
+
+    if (widths.team && widths.team < DEFAULT_WIDTHS.team) {
+      widths.team = DEFAULT_WIDTHS.team;
+    }
+    if (widths.team && widths.team > DEFAULT_WIDTHS.team) {
+      widths.team = DEFAULT_WIDTHS.team;
     }
     if (widths.stage && widths.stage < DEFAULT_WIDTHS.stage) {
       widths.stage = DEFAULT_WIDTHS.stage;
     }
+    if (widths.stage && widths.stage > DEFAULT_WIDTHS.stage) {
+      widths.stage = DEFAULT_WIDTHS.stage;
+    }
     if (widths.company && widths.company < DEFAULT_WIDTHS.company) {
       widths.company = DEFAULT_WIDTHS.company;
+    }
+    widths.comment = DEFAULT_WIDTHS.comment;
+    widths.geo = DEFAULT_WIDTHS.geo;
+    widths.aff_cap = DEFAULT_WIDTHS.aff_cap;
+    widths.aff_wh = DEFAULT_WIDTHS.aff_wh;
+    widths.aff = DEFAULT_WIDTHS.aff;
+    if (widths.partner && widths.partner > DEFAULT_WIDTHS.partner) {
+      widths.partner = DEFAULT_WIDTHS.partner;
+    }
+    if (widths.aff_price && widths.aff_price > DEFAULT_WIDTHS.aff_price) {
+      widths.aff_price = DEFAULT_WIDTHS.aff_price;
     }
     if (!widths.actions || widths.actions < MIN_ACTIONS_WIDTH) {
       widths.actions = DEFAULT_WIDTHS.actions;
@@ -108,11 +133,19 @@
     var cols = table.querySelectorAll('colgroup col');
     var key = getColKey(th);
     var hidden = isHiddenCol(table, key);
+    var px = width + 'px';
 
     if (cols[index]) {
       cols[index].style.display = hidden ? 'none' : '';
-      cols[index].style.width = '';
-      cols[index].style.minWidth = '';
+      if (hidden) {
+        cols[index].style.width = '';
+        cols[index].style.minWidth = '';
+        cols[index].style.maxWidth = '';
+      } else {
+        cols[index].style.width = px;
+        cols[index].style.minWidth = px;
+        cols[index].style.maxWidth = px;
+      }
     }
 
     if (hidden) {
@@ -122,9 +155,9 @@
       return;
     }
 
-    th.style.width = '';
-    th.style.maxWidth = '';
-    th.style.minWidth = width + 'px';
+    th.style.width = px;
+    th.style.minWidth = px;
+    th.style.maxWidth = px;
   }
 
   function captureAllWidths(table) {
@@ -142,7 +175,7 @@
 
     ensureColgroup(table);
     table.classList.add('rh-data-table--resizable');
-    table.style.tableLayout = 'auto';
+    table.style.tableLayout = 'fixed';
     table.style.width = 'max-content';
     table.style.minWidth = '100%';
 
@@ -223,10 +256,9 @@
 
     ensureHandles(table);
 
-    var widths = loadWidths();
-    if (!Object.keys(widths).length) {
-      widths = DEFAULT_WIDTHS;
-    }
+    var stored = loadWidths();
+    var widths = Object.assign({}, DEFAULT_WIDTHS, stored);
+    widths = sanitizeWidths(widths);
 
     applyWidths(table, widths);
   }

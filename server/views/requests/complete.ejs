@@ -2,7 +2,7 @@
 
     <div class="mb-6">
       <h1 class="rh-page-title mb-2">Submit result</h1>
-      <p class="rh-subtitle">Request #<%= request.id %> · Buyer GEO <%= request.geo %> · Cap <%= request.quantity %></p>
+      <p class="rh-subtitle">Request #<%= formatRequestDisplayId(request) %> · Buyer GEO <%= request.geo %> · Cap <%= request.quantity %></p>
     </div>
 
     <div id="complete-form-error" role="alert" class="rh-flash rh-flash--error max-w-md hidden"><span></span></div>
@@ -10,7 +10,7 @@
       <div role="alert" class="rh-flash rh-flash--error max-w-md"><span><%= error %></span></div>
     <% } %>
 
-    <form id="complete-form" method="post" action="/<%= request.id %>/complete" class="rh-card rh-form-card flex flex-col gap-4" novalidate>
+    <form id="complete-form" method="post" action="/<%= encodeRequestPath(request.id) %>/complete" class="rh-card rh-form-card flex flex-col gap-4" novalidate>
       <label class="form-control w-full">
         <span class="label-text mb-1">Aff</span>
         <input type="text" class="input input-bordered w-full" value="<%= userStage(user) %>" disabled />

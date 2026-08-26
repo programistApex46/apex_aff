@@ -3,7 +3,7 @@
     <div class="rh-modal-page-head-text">
       <h3 class="rh-modal-sheet-title">Edit</h3>
       <p class="rh-muted text-sm mt-1">
-        Request #<%= request.id %> · <%= request.quantity %> lead<%= request.quantity === 1 ? '' : 's' %>
+        Request #<%= formatRequestDisplayId(request) %> · <%= request.quantity %> lead<%= request.quantity === 1 ? '' : 's' %>
       </p>
     </div>
     <%- include('modal-close') %>
@@ -11,9 +11,9 @@
 
   <form
     method="post"
-    action="/<%= request.id %>/aff-fields"
+    action="/<%= encodeRequestPath(request.id) %>/aff-fields"
     class="rh-modal-page-form flex flex-col"
-    hx-post="/<%= request.id %>/aff-fields"
+    hx-post="/<%= encodeRequestPath(request.id) %>/aff-fields"
     hx-swap="none"
   >
     <div class="rh-modal-page-body">
@@ -60,7 +60,7 @@
       <button
         type="button"
         class="rh-profile-text-action rh-profile-text-action--danger"
-        hx-get="/<%= request.id %>/release-modal"
+        hx-get="/<%= encodeRequestPath(request.id) %>/release-modal"
         hx-target="#modal-body"
         hx-swap="innerHTML"
       >Release task</button>

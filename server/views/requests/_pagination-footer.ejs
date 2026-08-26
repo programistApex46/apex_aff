@@ -1,0 +1,13 @@
+<%
+  var from = pagination.totalCount === 0 ? 0 : (pagination.page - 1) * pagination.perPage + 1;
+  var to = Math.min(pagination.page * pagination.perPage, pagination.totalCount);
+  var showNav = pagination.totalPages > 1;
+%>
+<footer class="rh-pagination-footer" id="requests-pagination-footer">
+  <% if (showNav) { %>
+    <%- include('_pagination', { pagination, paginationUrl, paginationListUrl }) %>
+  <% } else if (pagination.totalCount > 0) { %>
+    <p class="rh-pagination-summary rh-pagination-summary--solo"><%= from %>–<%= to %> of <%= pagination.totalCount %></p>
+  <% } %>
+  <%- include('_per-page-control', { perPageOptions, pagination }) %>
+</footer>

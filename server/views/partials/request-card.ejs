@@ -32,7 +32,14 @@
   var hasGeo = !!(buyerGeo && buyerGeo !== '—');
   var hasFunnel = !!(request.funnel && String(request.funnel).trim());
   var hasNote = !!(request.comment && String(request.comment).trim());
-  var hasAff = !!request.taken_by_stage;
+  var splitAssignees = request.split_assignees || [];
+  var assignmentAffIds = request.taken_by_id || '';
+  var affSearchLabel = request.taken_by_stage || '';
+  if (splitAssignees.length) {
+    assignmentAffIds = splitAssignees.map(function (aff) { return aff.id; }).join(',');
+    affSearchLabel = splitAssignees.map(function (aff) { return aff.stage; }).join(' ');
+  }
+  var hasAff = !!request.taken_by_stage || (request.is_split_root && splitAssignees.length > 0);
   var hasPartner = !!(request.partner && String(request.partner).trim());
   var hasWh = !!(request.aff_wh && String(request.aff_wh).trim());
   var hasPrice = !!(request.aff_price && String(request.aff_price).trim());
@@ -44,29 +51,32 @@
   var showHero = hasGeo || showBuyerCapDisplay || !!request.language;
 %>
 <article
-  id="request-card-<%= request.id %>"
+  id="request-card-<%= requestDomSlug(request.id) %>"
   class="<%= cardClasses.join(' ') %>"
   data-status-label="<%= cardStatus.label %>"
   data-status-key="<%= cardStatus.key %>"
   data-id="<%= request.id %>"
+  data-display-id="<%= formatRequestDisplayId(request) %>"
   data-status="<%= request.status %>"
   data-stage="<%= request.buyer_stage %>"
   data-geo="<%= request.geo %>"
   data-language="<%= request.language || '' %>"
   data-quantity="<%= request.quantity %>"
+  data-cap-agreed="<%= request.agreed_cap ?? 0 %>"
   data-remaining-cap="<%= request.available_leads ?? request.quantity %>"
   data-split-from="<%= request.split_from_id || '' %>"
   data-split-root="<%= request.split_root_id || request.split_from_id || '' %>"
+  data-split-part="<%= request.split_part || request.split_part_number || '' %>"
   data-is-subtask="<%= isSubtask ? '1' : '0' %>"
   data-is-split-member="<%= isSplitMember ? '1' : '0' %>"
   data-is-split-root="<%= request.is_split_root && (request.split_group_size || 0) >= 2 ? '1' : '0' %>"
   data-split-group-size="<%= request.split_group_size || '' %>"
-  data-assignment-aff-ids="<%= request.taken_by_id || '' %>"
+  data-assignment-aff-ids="<%= assignmentAffIds %>"
   data-aggregate-result="<%= request.aggregate_result_status || request.result_status || '' %>"
   data-funnel="<%= request.funnel || '' %>"
   data-comment="<%= request.comment || '' %>"
   data-buyer-id="<%= request.buyer_id %>"
-  data-aff="<%= request.taken_by_stage || '' %>"
+  data-aff="<%= affSearchLabel %>"
   data-partner="<%= request.partner || '' %>"
   data-assigned-id="<%= request.taken_by_id || '' %>"
   data-aff-geo="<%= request.aff_geo || '' %>"
@@ -78,12 +88,13 @@
   data-created="<%= request.created_at %>"
 <%
   var _insertIds = typeof insertIds !== 'undefined' ? insertIds : [];
+  var _isOobInsert = _insertIds.some(function (id) { return String(id) === String(request.id); });
   var _oobInsert = typeof oob !== 'undefined' && oob
-    && _insertIds.indexOf(request.id) !== -1
+    && _isOobInsert
     && isSubtask
     && request.split_insert_after_id;
   var _oobSwap = typeof oob !== 'undefined' && oob
-    ? (_oobInsert ? 'afterend:#request-card-' + request.split_insert_after_id : 'outerHTML')
+    ? (_oobInsert ? 'afterend:#request-card-' + requestDomSlug(request.split_insert_after_id) : 'outerHTML')
     : null;
 %>
 <% if (_oobSwap) { %> hx-swap-oob="<%= _oobSwap %>"<% } %>>
@@ -111,6 +122,12 @@
             <span class="rh-request-card-stat">
               <span class="rh-request-card-stat-label">Cap</span>
               <%- include('request-cap-display', { request }) %>
+            </span>
+          <% } %>
+          <% if (request.is_split_tree_root || (request.is_split_root && (request.split_group_size || request.split_tree_size || 0) > 1)) { %>
+            <span class="rh-request-card-stat">
+              <span class="rh-request-card-stat-label">Agreed</span>
+              <%- include('request-agreed-cap-display', { request }) %>
             </span>
           <% } %>
           <% if (request.language) { %>
@@ -156,7 +173,7 @@
       <section class="rh-request-card-section rh-request-card-section--aff">
         <div class="rh-request-card-aff-row">
           <span class="rh-request-card-kv rh-request-card-kv--aff">
-            <%- include('aff-user-tag', { stage: request.taken_by_stage, avatarPath: request.taken_by_avatar_path }) %>
+            <%- include('request-aff-display', { request }) %>
           </span>
           <span class="rh-request-card-hero-stats">
             <span class="rh-request-card-stat">
@@ -190,7 +207,7 @@
       <button
         type="button"
         class="btn btn-success btn-sm flex-1 rh-request-card-take-btn"
-        hx-get="/<%= request.id %>/take-modal"
+        hx-get="/<%= encodeRequestPath(request.id) %>/take-modal"
         hx-target="#modal-body"
         hx-swap="innerHTML"
       >Take</button>
@@ -201,7 +218,7 @@
         <button
           type="button"
           class="btn btn-success btn-sm flex-1 rh-request-card-complete-btn"
-          hx-get="/<%= request.id %>/complete-modal"
+          hx-get="/<%= encodeRequestPath(request.id) %>/complete-modal"
           hx-target="#modal-body"
           hx-swap="innerHTML"
         >Complete</button>
@@ -211,7 +228,7 @@
       <button
         type="button"
         class="btn btn-outline btn-sm flex-1 icon-btn"
-        hx-get="/<%= request.id %>/aff-edit-modal"
+        hx-get="/<%= encodeRequestPath(request.id) %>/aff-edit-modal"
         hx-target="#modal-body"
         hx-swap="innerHTML"
       >

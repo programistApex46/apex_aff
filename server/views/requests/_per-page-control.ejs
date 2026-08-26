@@ -1,0 +1,24 @@
+<%
+  var activePerPage = typeof pagination !== 'undefined' ? pagination.perPage : 50;
+  var defaultPerPage = 50;
+%>
+<div
+  class="rh-pagination-per-page<%= activePerPage !== defaultPerPage ? ' is-active' : '' %>"
+  id="requests-per-page-control"
+>
+  <label class="rh-pagination-per-page-label" for="sort-per-page">Show</label>
+  <div class="rh-pagination-per-page-select-wrap">
+    <select
+      id="sort-per-page"
+      name="per_page"
+      class="rh-pagination-per-page-select"
+      title="Number of requests per page"
+      aria-label="Requests per page"
+    >
+      <% perPageOptions.forEach(function(option) { %>
+        <option value="<%= option.value %>"<%= activePerPage === option.value ? ' selected' : '' %>><%= option.label %></option>
+      <% }) %>
+    </select>
+  </div>
+  <span class="rh-pagination-per-page-suffix">per page</span>
+</div>

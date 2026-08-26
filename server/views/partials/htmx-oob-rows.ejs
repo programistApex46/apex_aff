@@ -3,6 +3,6 @@
   <%- include('request-rows', { request: item, user, error, statusBadgeClass, oob, insertIds }) %>
 <% }) %>
 <% (typeof removeIds !== 'undefined' ? removeIds : []).forEach(function (id) { %>
-<tr id="request-row-<%= id %>" hx-swap-oob="delete"></tr>
-<article id="request-card-<%= id %>" hx-swap-oob="delete"></article>
+<tr id="request-row-<%= requestDomSlug(id) %>" hx-swap-oob="delete"></tr>
+<article id="request-card-<%= requestDomSlug(id) %>" hx-swap-oob="delete"></article>
 <% }) %>

@@ -2,7 +2,7 @@
   <div class="rh-modal-page-head">
     <div class="rh-modal-page-head-text">
       <h3 class="rh-modal-sheet-title">Reopen request?</h3>
-      <p class="rh-muted text-sm mt-1">Request #<%= request.id %></p>
+      <p class="rh-muted text-sm mt-1">Request #<%= formatRequestDisplayId(request) %></p>
     </div>
     <%- include('modal-close') %>
   </div>
@@ -19,10 +19,11 @@
 
   <form
     method="post"
-    action="/<%= request.id %>/reopen"
+    action="/<%= encodeRequestPath(request.id) %>/reopen"
     class="rh-modal-page-foot"
-    hx-post="/<%= request.id %>/reopen"
+    hx-post="/<%= encodeRequestPath(request.id) %>/reopen"
     hx-swap="none"
+    hx-on::before-request="window.closeRequestModal(true)"
   >
     <button type="submit" class="rh-profile-pill">Reopen</button>
     <button type="button" class="rh-profile-text-action" onclick="if (window.modal) window.modal.close()">Cancel</button>

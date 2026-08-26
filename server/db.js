@@ -24,6 +24,12 @@ function hasTable(database, table) {
   return !!row;
 }
 
+function requestsUseTextIds(database) {
+  if (!hasTable(database, 'requests')) return false;
+  const col = database.pragma('table_info(requests)').find((c) => c.name === 'id');
+  return !!(col && String(col.type).toUpperCase() === 'TEXT');
+}
+
 function migrateUsersTable(database) {
   if (!hasColumn(database, 'users', 'is_active')) {
     database.pragma('foreign_keys = OFF');
@@ -90,6 +96,7 @@ function requestsSchemaHasDraft(database) {
 }
 
 function migrateRequestsStatusDraft(database) {
+  if (requestsUseTextIds(database)) return;
   if (!hasTable(database, 'requests') || requestsSchemaHasDraft(database)) {
     return;
   }
@@ -257,6 +264,7 @@ function requestsSchemaAllowsPartial(database) {
 }
 
 function migrateRequestsRemovePartial(database) {
+  if (requestsUseTextIds(database)) return;
   if (!requestsSchemaAllowsPartial(database)) {
     return;
   }

@@ -1,6 +1,7 @@
 const TelegramBot = require('node-telegram-bot-api');
 const { getDb } = require('./db');
 const { getBotUsername, bindTelegramByCode } = require('./lib/telegram-bind');
+const { formatRequestDisplayId } = require('./lib/display');
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 
@@ -101,23 +102,6 @@ function getBuyerContext(buyerId) {
     .get(buyerId);
 }
 
-function getAllAffChatIds() {
-  const db = getDb();
-  return db
-    .prepare(
-      `
-      SELECT telegram_chat_id
-      FROM users
-      WHERE role = 'aff'
-        AND is_active = 1
-        AND telegram_chat_id IS NOT NULL
-        AND TRIM(telegram_chat_id) != ''
-    `
-    )
-    .all()
-    .map((row) => row.telegram_chat_id);
-}
-
 async function sendUniqueMessages(entries) {
   const seen = new Set();
 
@@ -141,26 +125,15 @@ function formatRequestBasics(request) {
 
 function formatNewRequestForBuyer(request) {
   return [
-    `✅ Your request #${request.id} has been sent to Affs`,
+    `✅ Your request #${formatRequestDisplayId(request)} has been created and sent`,
     `Stage: ${request.buyer_stage}`,
-    ...formatRequestBasics(request)
-  ].join('\n');
-}
-
-function formatNewRequestForAff(request) {
-  return [
-    `🆕 New request #${request.id}`,
-    `Stage: ${request.buyer_stage}`,
-    `Company: ${request.buyer_company || '—'}`,
-    `Team: ${request.buyer_team_name || '—'}`,
     ...formatRequestBasics(request)
   ].join('\n');
 }
 
 function formatNewRequestForTeamlead(request) {
   return [
-    `🆕 New team request #${request.id}`,
-    `Buyer: ${request.buyer_stage}`,
+    `🆕 Buyer ${request.buyer_stage} created and sent request #${formatRequestDisplayId(request)}`,
     ...formatRequestBasics(request)
   ].join('\n');
 }
@@ -247,8 +220,6 @@ function formatAssignmentDoneForTeamlead(request, assignment, meta) {
 async function notifyNewRequest(request) {
   try {
     const ctx = getBuyerContext(request.buyer_id);
-    const affChatIds = getAllAffChatIds();
-
     const entries = [];
 
     if (ctx?.buyer_chat_id) {
@@ -263,11 +234,6 @@ async function notifyNewRequest(request) {
         chatId: ctx.teamlead_chat_id,
         text: formatNewRequestForTeamlead(request)
       });
-    }
-
-    const affText = formatNewRequestForAff(request);
-    for (const chatId of affChatIds) {
-      entries.push({ chatId, text: affText });
     }
 
     if (entries.length === 0) {
@@ -292,16 +258,16 @@ async function notifyRequestClaimed(request, affUser, claimResult, remainderRequ
         entries.push({
           chatId: ctx.buyer_chat_id,
           text: [
-            `✂️ Request #${request.id} has been split`,
+            `✂️ Request #${formatRequestDisplayId(request)} has been split`,
             `Aff: ${affLabel} claimed ${claimResult.capTaken} of ${request.quantity + claimResult.remainder}`,
-            `Remainder: #${remainderRequest.id} (${claimResult.remainder} leads, unassigned)`,
+            `Part: #${formatRequestDisplayId(remainderRequest)} (${claimResult.capTaken} leads)`,
           ].join('\n'),
         });
       } else {
         entries.push({
           chatId: ctx.buyer_chat_id,
           text: [
-            `🔄 Request #${request.id} taken in progress`,
+            `🔄 Request #${formatRequestDisplayId(request)} taken in progress`,
             `Aff: ${affLabel}`,
             `Cap: ${claimResult.capTaken}`,
           ].join('\n'),
@@ -313,10 +279,10 @@ async function notifyRequestClaimed(request, affUser, claimResult, remainderRequ
       entries.push({
         chatId: ctx.teamlead_chat_id,
         text: [
-          `✂️ Team request #${request.id} split`,
+          `✂️ Team request #${formatRequestDisplayId(request)} split`,
           `Buyer: ${request.buyer_stage}`,
           `Aff: ${affLabel} claimed ${claimResult.capTaken}`,
-          `Remainder: #${remainderRequest.id} (${claimResult.remainder} leads)`,
+          `Part: #${formatRequestDisplayId(remainderRequest)} (${claimResult.capTaken} leads)`,
         ].join('\n'),
       });
     }
@@ -340,7 +306,7 @@ async function notifyAssignmentDone(request) {
       entries.push({
         chatId: ctx.buyer_chat_id,
         text: [
-          `${emoji} Request #${request.id} completed`,
+          `${emoji} Request #${formatRequestDisplayId(request)} completed`,
           `Status: ${statusLabel}`,
           `Cap: ${pieceCap}`,
           `Details: ${request.result_details || '—'}`,
@@ -352,7 +318,7 @@ async function notifyAssignmentDone(request) {
       entries.push({
         chatId: ctx.teamlead_chat_id,
         text: [
-          `${emoji} Team request #${request.id} completed`,
+          `${emoji} Team request #${formatRequestDisplayId(request)} completed`,
           `Buyer: ${request.buyer_stage}`,
           `Aff: ${request.taken_by_stage || '—'}`,
           `Status: ${statusLabel}`,

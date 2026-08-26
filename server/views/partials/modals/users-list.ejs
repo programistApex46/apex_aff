@@ -74,7 +74,8 @@
                   <button
                     type="button"
                     class="btn btn-xs btn-square icon-btn rh-table-action-btn rh-table-action-edit"
-                    title="Edit"
+                    data-rh-cursor-tip="Edit user"
+                    aria-label="Edit user"
                     hx-get="/users/<%= u.id %>/edit-modal"
                     hx-target="#modal-body"
                     hx-swap="innerHTML"
@@ -85,7 +86,8 @@
                     <button
                       type="button"
                       class="btn btn-xs btn-square icon-btn rh-table-action-btn rh-table-action-danger"
-                      title="Deactivate"
+                      data-rh-cursor-tip="Deactivate user"
+                      aria-label="Deactivate user"
                       hx-post="/users/<%= u.id %>/delete"
                       hx-target="#modal-body"
                       hx-swap="innerHTML"
@@ -97,7 +99,8 @@
                     <button
                       type="button"
                       class="btn btn-xs btn-square icon-btn rh-table-action-btn rh-table-action-complete"
-                      title="Restore"
+                      data-rh-cursor-tip="Restore user"
+                      aria-label="Restore user"
                       hx-post="/users/<%= u.id %>/restore"
                       hx-target="#modal-body"
                       hx-swap="innerHTML"

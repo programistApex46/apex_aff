@@ -7,7 +7,9 @@
     "start": "node server/app.js",
     "dev": "node --watch server/app.js",
     "seed:requests": "node scripts/seed-requests.js",
-    "build:motion": "npx --yes esbuild scripts/motion-entry.js --bundle --format=iife --global-name=Motion --minify --outfile=server/public/js/vendor/motion.js"
+    "build:motion": "npx --yes esbuild scripts/motion-entry.js --bundle --format=iife --global-name=Motion --minify --outfile=server/public/js/vendor/motion.js",
+    "vendor:embla": "cp node_modules/embla-carousel/embla-carousel.umd.js server/public/js/vendor/embla-carousel.umd.js",
+    "vendor:sortable": "cp node_modules/sortablejs/Sortable.min.js server/public/js/vendor/sortable.min.js"
   },
   "dependencies": {
     "@simplewebauthn/server": "^11.0.0",
@@ -15,11 +17,13 @@
     "better-sqlite3": "^11.7.0",
     "dotenv": "^16.4.7",
     "ejs": "^3.1.10",
+    "embla-carousel": "^8.6.0",
     "express": "^4.21.2",
     "express-session": "^1.18.1",
     "google-auth-library": "^11.0.2",
     "motion": "^13.1.0",
     "multer": "^2.2.0",
-    "node-telegram-bot-api": "^0.66.0"
+    "node-telegram-bot-api": "^0.66.0",
+    "sortablejs": "^1.15.6"
   }
 }
