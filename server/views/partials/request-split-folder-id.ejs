@@ -17,14 +17,8 @@
     >
       <%- include('icon', { name: 'chevron-down', className: 'rh-split-folder-chevron w-3.5 h-3.5' }) %>
     </button>
-    <span class="rh-split-folder-icon rh-split-folder-icon--root" aria-hidden="true">
-      <%- include('icon', { name: 'folder', className: 'w-4 h-4' }) %>
-    </span>
   <% } else if (isSubtask && splitRootId) { %>
     <span class="rh-split-folder-indent" aria-hidden="true"></span>
-    <span class="rh-split-folder-icon rh-split-folder-icon--part" aria-hidden="true">
-      <%- include('icon', { name: 'folder-part', className: 'w-3.5 h-3.5' }) %>
-    </span>
   <% } %>
   <span class="rh-request-row-id"><%= typeof formatRequestDisplayId === 'function' ? formatRequestDisplayId(request) : (request.display_id || request.id) %></span>
 </div>

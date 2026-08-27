@@ -5277,18 +5277,6 @@ body.rh-quiz-open {
   transition: transform 0.15s ease;
 }
 
-.rh-split-folder-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  color: var(--rh-split-group-color);
-}
-
-.rh-split-folder-icon--part {
-  color: color-mix(in srgb, var(--rh-split-group-color) 72%, var(--rh-text-muted));
-}
-
 .rh-split-folder-indent {
   display: inline-block;
   flex-shrink: 0;
@@ -5395,7 +5383,6 @@ body.rh-quiz-open {
 .rh-request-row--approved .rh-note-preview,
 .rh-request-row--approved .rh-split-folder-toggle,
 .rh-request-row--approved .rh-split-folder-count,
-.rh-request-row--approved .rh-split-folder-icon,
 .rh-request-row--approved td:not(.rh-table-actions),
 .rh-request-row--rejected .rh-buyer-stage,
 .rh-request-row--rejected .rh-aff-user-name,
@@ -5408,7 +5395,6 @@ body.rh-quiz-open {
 .rh-request-row--rejected .rh-note-preview,
 .rh-request-row--rejected .rh-split-folder-toggle,
 .rh-request-row--rejected .rh-split-folder-count,
-.rh-request-row--rejected .rh-split-folder-icon,
 .rh-request-row--rejected td:not(.rh-table-actions) {
   color: var(--rh-closed-row-text);
 }
