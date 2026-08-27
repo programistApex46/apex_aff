@@ -19,7 +19,9 @@
   if (request.is_split_root) rowClasses.push('rh-request-row--split-root');
   if (request.is_split_root && (request.split_group_size || 0) >= 2) {
     rowClasses.push('rh-split-folder-root');
+    rowClasses.push('rh-split-folder--collapsed');
   }
+  if (isSubtask) rowClasses.push('rh-split-folder-child--hidden');
 %>
 <tr
   id="request-row-<%= requestDomSlug(request.id) %>"
@@ -70,7 +72,7 @@
     ? (_oobInsert ? 'afterend:#request-row-' + requestDomSlug(request.split_insert_after_id) : 'outerHTML')
     : null;
 %>
-<% if (_oobSwap) { %> hx-swap-oob="<%= _oobSwap %>"<% } %>>
+<% if (_oobSwap) { %> hx-swap-oob="<%= _oobSwap %>"<% } %><% if (isSubtask) { %> hidden<% } %>>
   <td class="rh-td-meta rh-td-id" data-col-key="id">
     <div class="rh-request-id-cell">
       <div class="rh-request-id-cell-main">

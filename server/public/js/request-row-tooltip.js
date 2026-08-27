@@ -6,6 +6,7 @@
   var hoverRow = null;
   var hoverActionBtn = null;
   var hoverAff = null;
+  var hoverGeo = null;
   var rafId = null;
   var pendingX = 0;
   var pendingY = 0;
@@ -25,6 +26,7 @@
     hoverRow = null;
     hoverActionBtn = null;
     hoverAff = null;
+    hoverGeo = null;
     if (tipEl) tipEl.hidden = true;
   }
 
@@ -68,6 +70,10 @@
     return target.closest('.rh-aff-user--avatar-only[data-aff-name]');
   }
 
+  function findGeo(target) {
+    return target.closest('.rh-geo-cell--flag[data-geo-label]');
+  }
+
   function findActionBtn(target) {
     return target.closest('.rh-table-action-btn[data-rh-cursor-tip]');
   }
@@ -85,6 +91,24 @@
     return 'rh-request-status-cursor-tip--action';
   }
 
+  function showForGeo(geo, clientX, clientY) {
+    var label = geo.getAttribute('data-geo-label');
+    if (!label) {
+      hideTip();
+      return;
+    }
+
+    hoverRow = null;
+    hoverActionBtn = null;
+    hoverAff = null;
+    hoverGeo = geo;
+    var tip = getTip();
+    tip.textContent = label;
+    tip.className = 'rh-request-status-cursor-tip rh-request-status-cursor-tip--action';
+    tip.hidden = false;
+    schedulePosition(clientX, clientY);
+  }
+
   function showForAff(aff, clientX, clientY) {
     var label = aff.getAttribute('data-aff-name');
     if (!label) {
@@ -95,6 +119,7 @@
     hoverRow = null;
     hoverActionBtn = null;
     hoverAff = aff;
+    hoverGeo = null;
     var tip = getTip();
     tip.textContent = label;
     tip.className = 'rh-request-status-cursor-tip rh-request-status-cursor-tip--action';
@@ -112,6 +137,7 @@
     hoverRow = null;
     hoverActionBtn = btn;
     hoverAff = null;
+    hoverGeo = null;
     var tip = getTip();
     tip.textContent = label;
     tip.className = 'rh-request-status-cursor-tip ' + actionTipClass(btn);
@@ -128,6 +154,7 @@
 
     hoverActionBtn = null;
     hoverAff = null;
+    hoverGeo = null;
     hoverRow = row;
     var tip = getTip();
     var statusKey = row.getAttribute('data-status-key') || 'sent';
@@ -142,6 +169,13 @@
     if (aff) {
       if (aff === hoverAff) return;
       showForAff(aff, evt.clientX, evt.clientY);
+      return;
+    }
+
+    var geo = findGeo(evt.target);
+    if (geo) {
+      if (geo === hoverGeo) return;
+      showForGeo(geo, evt.clientX, evt.clientY);
       return;
     }
 
@@ -170,6 +204,13 @@
       return;
     }
 
+    if (hoverGeo) {
+      var geo = findGeo(evt.target);
+      if (geo !== hoverGeo && !hoverGeo.contains(evt.target)) return;
+      schedulePosition(evt.clientX, evt.clientY);
+      return;
+    }
+
     if (hoverActionBtn) {
       if (findActionBtn(evt.target) !== hoverActionBtn) return;
       schedulePosition(evt.clientX, evt.clientY);
@@ -189,6 +230,14 @@
       if (findAff(evt.target) !== hoverAff) return;
       var affRelated = evt.relatedTarget;
       if (affRelated && hoverAff.contains(affRelated)) return;
+      hideTip();
+      return;
+    }
+
+    if (hoverGeo) {
+      if (findGeo(evt.target) !== hoverGeo) return;
+      var geoRelated = evt.relatedTarget;
+      if (geoRelated && hoverGeo.contains(geoRelated)) return;
       hideTip();
       return;
     }

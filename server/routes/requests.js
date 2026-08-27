@@ -904,7 +904,7 @@ router.post('/', requireRole(...CREATE_REQUEST_ROLES), (req, res) => {
     }
     requestId = draftId;
   } else {
-    const requestId = nextRootRequestId(db);
+    requestId = nextRootRequestId(db);
     db.prepare(`
         INSERT INTO requests (id, buyer_id, geo, language, quantity, funnel, comment, status, remaining_cap)
         VALUES (?, ?, ?, ?, ?, ?, ?, 'new', ?)
@@ -1042,12 +1042,14 @@ router.post('/:id/take', requireRole('aff'), (req, res) => {
 
   const rootId = result.rootId || requestId;
   const rows = getSplitTreeForRender(db, rootId, user);
-  const insertIds = childRequest ? [childRequest.id] : [];
+  const insertIds = [];
+  if (childRequest) insertIds.push(childRequest.id);
+  if (result.poolChildCreated && result.poolChildId) insertIds.push(result.poolChildId);
   const removeIds = result.removedPoolChildIds || [];
-  const oobRequests = buildSplitOobRequests(
-    rows,
-    childRequest ? [rootId, childRequest.id] : [rootId]
-  );
+  const oobIds = [rootId];
+  if (childRequest) oobIds.push(childRequest.id);
+  if (result.poolChildId) oobIds.push(result.poolChildId);
+  const oobRequests = buildSplitOobRequests(rows, oobIds);
 
   if (wantsPartial(req)) {
     res.set('HX-Trigger', 'modal-close');
@@ -1110,9 +1112,10 @@ router.post('/:id/release', requireRole('aff'), (req, res) => {
 
   const rows = getSplitTreeForRender(db, result.rootId || requestId, user);
   const removeIds = result.deleted ? [requestId] : [];
-  const oobIds = result.deleted
-    ? [result.rootId || requestId]
-    : [requestId, result.rootId || requestId];
+  const insertIds = result.poolChildCreated && result.poolChildId ? [result.poolChildId] : [];
+  const oobIds = [result.rootId || requestId];
+  if (result.poolChildId) oobIds.push(result.poolChildId);
+  if (!result.deleted) oobIds.push(requestId);
   const oobRequests = buildSplitOobRequests(rows, oobIds);
 
   if (rows.length) {
@@ -1123,7 +1126,7 @@ router.post('/:id/release', requireRole('aff'), (req, res) => {
     res.set('HX-Trigger', 'modal-close');
   }
 
-  return renderRows(res, { requests: oobRequests, removeIds, user, oob: true });
+  return renderRows(res, { requests: oobRequests, insertIds, removeIds, user, oob: true });
 });
 
 router.get('/:id/complete', requireRole('aff'), (req, res) => {

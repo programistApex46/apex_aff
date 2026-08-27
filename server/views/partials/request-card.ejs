@@ -20,7 +20,9 @@
   if (request.is_split_root) cardClasses.push('rh-request-card--split-root');
   if (request.is_split_root && (request.split_group_size || 0) >= 2) {
     cardClasses.push('rh-split-folder-root');
+    cardClasses.push('rh-split-folder--collapsed');
   }
+  if (isSubtask) cardClasses.push('rh-split-folder-child--hidden');
   var _formatTeamLabel = typeof formatTeamLabel === 'function'
     ? formatTeamLabel
     : function (name) { return name || ''; };
@@ -97,7 +99,7 @@
     ? (_oobInsert ? 'afterend:#request-card-' + requestDomSlug(request.split_insert_after_id) : 'outerHTML')
     : null;
 %>
-<% if (_oobSwap) { %> hx-swap-oob="<%= _oobSwap %>"<% } %>>
+<% if (_oobSwap) { %> hx-swap-oob="<%= _oobSwap %>"<% } %><% if (isSubtask) { %> hidden<% } %>>
   <header class="rh-request-card-head">
     <span class="rh-request-card-id">
       <%- include('request-split-folder-id', { request, inline: true }) %>

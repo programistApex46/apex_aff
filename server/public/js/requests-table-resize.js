@@ -5,8 +5,8 @@
   }
   window.__rhRequestsTableResizeBound = true;
 
-  var STORAGE_KEY = 'rh-requests-col-widths-v24';
-  var LEGACY_STORAGE_KEYS = ['rh-requests-col-widths-v23', 'rh-requests-col-widths-v22', 'rh-requests-col-widths-v21', 'rh-requests-col-widths-v20', 'rh-requests-col-widths-v19', 'rh-requests-col-widths-v18', 'rh-requests-col-widths-v17', 'rh-requests-col-widths-v16', 'rh-requests-col-widths-v15', 'rh-requests-col-widths-v14', 'rh-requests-col-widths-v13', 'rh-requests-col-widths-v12', 'rh-requests-col-widths-v11', 'rh-requests-col-widths-v10', 'rh-requests-col-widths-v9', 'rh-requests-col-widths-v8', 'rh-requests-col-widths-v7', 'rh-requests-col-widths-v6', 'rh-requests-col-widths-v5', 'rh-requests-col-widths-v4', 'rh-requests-col-widths-v3', 'rh-requests-col-widths-v2', 'rh-requests-col-widths'];
+  var STORAGE_KEY = 'rh-requests-col-widths-v25';
+  var LEGACY_STORAGE_KEYS = ['rh-requests-col-widths-v24', 'rh-requests-col-widths-v23', 'rh-requests-col-widths-v22', 'rh-requests-col-widths-v21', 'rh-requests-col-widths-v20', 'rh-requests-col-widths-v19', 'rh-requests-col-widths-v18', 'rh-requests-col-widths-v17', 'rh-requests-col-widths-v16', 'rh-requests-col-widths-v15', 'rh-requests-col-widths-v14', 'rh-requests-col-widths-v13', 'rh-requests-col-widths-v12', 'rh-requests-col-widths-v11', 'rh-requests-col-widths-v10', 'rh-requests-col-widths-v9', 'rh-requests-col-widths-v8', 'rh-requests-col-widths-v7', 'rh-requests-col-widths-v6', 'rh-requests-col-widths-v5', 'rh-requests-col-widths-v4', 'rh-requests-col-widths-v3', 'rh-requests-col-widths-v2', 'rh-requests-col-widths'];
   var MIN_WIDTH = 40;
   var MIN_ACTIONS_WIDTH = 120;
   var DESKTOP_QUERY = '(min-width: 768px)';
@@ -16,7 +16,7 @@
     company: 56,
     team: 40,
     stage: 52,
-    geo: 68,
+    geo: 40,
     language: 40,
     quantity: 52,
     cap_agreed: 52,

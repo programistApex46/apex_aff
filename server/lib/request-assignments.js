@@ -1,8 +1,9 @@
 /**
  * Request split model: one aff per request row.
- * Full take → same row goes to aff (in_progress).
- * Partial take → original (root) stays open; new child row for taken cap (split_from_id).
- * Root closes when pool is empty and all children are done.
+ * Published root stays the folder/pool. On create it gets an available child
+ * `{root}/0` with the full remaining cap. Take always carves from that child
+ * and adds a taken child `{root}/{n}`. Root closes when the pool is empty
+ * and all children are done.
  */
 
 const { nextRootRequestId, requestsUseTextIds, compareRequestIds } = require('./request-id');
@@ -68,6 +69,7 @@ function ensureAssignmentSchema(db) {
   repairSplitTreeIntegrityOnce(db);
   backfillDisplayRefsOnce(db);
   migrateRequestTextIdsOnce(db);
+  ensureAvailablePoolChildrenOnce(db);
 }
 
 function splitMetaGet(db, key) {
@@ -119,9 +121,14 @@ function insertRemainderRequest(db, source, remainderQty, splitFromId) {
 
 function nextSplitPartNumber(db, rootId) {
   const row = db
-    .prepare('SELECT COALESCE(MAX(split_part), 0) + 1 AS n FROM requests WHERE split_from_id = ?')
+    .prepare(`
+      SELECT COALESCE(MAX(split_part), 0) + 1 AS n
+      FROM requests
+      WHERE split_from_id = ?
+        AND COALESCE(split_part, 0) > 0
+    `)
     .get(rootId);
-  return Number(row?.n || 1);
+  return Math.max(1, Number(row?.n || 1));
 }
 
 function resolveDisplayRef(request) {
@@ -129,11 +136,29 @@ function resolveDisplayRef(request) {
   return String(request.id ?? '');
 }
 
+function nextTakenChildIdentity(db, splitFromId) {
+  let splitPart = nextSplitPartNumber(db, splitFromId);
+  if (!requestsUseTextIds(db)) return { splitPart, childId: null };
+
+  for (let i = 0; i < 50; i += 1) {
+    const childId = `${splitFromId}/${splitPart}`;
+    const taken = db.prepare('SELECT 1 AS ok FROM requests WHERE id = ?').get(childId);
+    const partTaken = db
+      .prepare('SELECT 1 AS ok FROM requests WHERE split_from_id = ? AND split_part = ?')
+      .get(splitFromId, splitPart);
+    if (!taken && !partTaken) return { splitPart, childId };
+    splitPart += 1;
+  }
+
+  return { splitPart, childId: `${splitFromId}/${splitPart}` };
+}
+
 function insertTakenChildRequest(db, source, takenQty, splitFromId, affId) {
-  const splitPart = nextSplitPartNumber(db, splitFromId);
+  const identity = nextTakenChildIdentity(db, splitFromId);
+  const splitPart = identity.splitPart;
 
   if (requestsUseTextIds(db)) {
-    const childId = `${splitFromId}/${splitPart}`;
+    const childId = identity.childId;
     db.prepare(`
       INSERT INTO requests (
         id, buyer_id, stage, geo, language, quantity, funnel, comment,
@@ -200,6 +225,149 @@ function decrementRootPool(db, rootId, amount) {
         updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
   `).run(amount, rootId);
+}
+
+function poolChildIdFor(rootId) {
+  return `${rootId}/0`;
+}
+
+function getPoolChild(db, rootId) {
+  if (requestsUseTextIds(db)) {
+    const byId = db.prepare('SELECT * FROM requests WHERE id = ?').get(poolChildIdFor(rootId));
+    if (byId && byId.status === 'new' && !byId.taken_by_id && String(byId.split_from_id) === String(rootId)) {
+      return byId;
+    }
+  }
+
+  return db.prepare(`
+    SELECT *
+    FROM requests
+    WHERE split_from_id = ?
+      AND status = 'new'
+      AND taken_by_id IS NULL
+    ORDER BY COALESCE(split_part, 0) ASC, id ASC
+    LIMIT 1
+  `).get(rootId) || null;
+}
+
+function insertPoolChild(db, source, qty) {
+  const splitPart = 0;
+
+  if (requestsUseTextIds(db)) {
+    const childId = poolChildIdFor(source.id);
+    db.prepare(`
+      INSERT INTO requests (
+        id, buyer_id, stage, geo, language, quantity, funnel, comment,
+        status, split_from_id, split_part, remaining_cap
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'new', ?, ?, ?)
+    `).run(
+      childId,
+      source.buyer_id,
+      source.stage,
+      source.geo,
+      source.language,
+      qty,
+      source.funnel,
+      source.comment,
+      source.id,
+      splitPart,
+      qty,
+    );
+    return childId;
+  }
+
+  const info = db
+    .prepare(`
+      INSERT INTO requests (
+        buyer_id, stage, geo, language, quantity, funnel, comment,
+        status, split_from_id, split_part, remaining_cap
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, 'new', ?, ?, ?)
+    `)
+    .run(
+      source.buyer_id,
+      source.stage,
+      source.geo,
+      source.language,
+      qty,
+      source.funnel,
+      source.comment,
+      source.id,
+      splitPart,
+      qty,
+    );
+  return info.lastInsertRowid;
+}
+
+function syncPoolChildFromRoot(db, rootId) {
+  const root = db.prepare('SELECT * FROM requests WHERE id = ?').get(rootId);
+  if (!root || root.split_from_id || root.status === 'draft') {
+    return { poolChildId: null, created: false, removedId: null };
+  }
+
+  const remaining = getRootPoolCap(db, rootId);
+  const existing = getPoolChild(db, rootId);
+
+  if (remaining <= 0) {
+    if (existing) {
+      db.prepare('DELETE FROM requests WHERE id = ?').run(existing.id);
+      return { poolChildId: null, created: false, removedId: existing.id };
+    }
+    return { poolChildId: null, created: false, removedId: null };
+  }
+
+  if (existing) {
+    db.prepare(`
+      UPDATE requests
+      SET quantity = ?,
+          remaining_cap = ?,
+          geo = ?,
+          language = ?,
+          funnel = ?,
+          comment = ?,
+          split_part = COALESCE(split_part, 0),
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).run(
+      remaining,
+      remaining,
+      root.geo,
+      root.language,
+      root.funnel,
+      root.comment,
+      existing.id,
+    );
+    return { poolChildId: existing.id, created: false, removedId: null };
+  }
+
+  return {
+    poolChildId: insertPoolChild(db, root, remaining),
+    created: true,
+    removedId: null,
+  };
+}
+
+function ensureAvailablePoolChildrenOnce(db) {
+  if (splitMetaGet(db, 'available_pool_child_v1') === 'done') return;
+
+  const repair = db.transaction(() => {
+    const roots = db
+      .prepare(`
+        SELECT id
+        FROM requests
+        WHERE split_from_id IS NULL
+          AND status = 'new'
+          AND taken_by_id IS NULL
+      `)
+      .all();
+
+    for (const row of roots) {
+      syncPoolChildFromRoot(db, row.id);
+    }
+
+    splitMetaSet(db, 'available_pool_child_v1', 'done');
+  });
+
+  repair();
 }
 
 function countDirectSplitChildren(db, rootId) {
@@ -1175,8 +1343,8 @@ function getRequestAgreedCap(db, request, isSplitTreeRoot, splitTreeRootId) {
 
 function getSplitPartNumber(db, request) {
   if (!request?.split_from_id) return null;
-  if (Number.isInteger(request.split_part) && request.split_part > 0) {
-    return request.split_part;
+  if (request.split_part != null && Number.isFinite(Number(request.split_part))) {
+    return Number(request.split_part);
   }
   const rootId = getSplitRootId(db, request);
   if (!rootId || rootId === request.id) return null;
@@ -1518,39 +1686,8 @@ function takeRequest(db, requestId, affId, capTaken) {
       };
     }
 
-    const hasChildren = countDirectSplitChildren(db, rootId) > 0;
-    const removedPoolChildIds = [];
-
-    if (amount === total && !hasChildren && poolRequest.id === rootId) {
-      db.prepare(`
-        UPDATE requests
-        SET taken_by_id = ?,
-            status = 'in_progress',
-            quantity = ?,
-            remaining_cap = ?,
-            result_quantity = ?,
-            updated_at = CURRENT_TIMESTAMP
-        WHERE id = ?
-      `).run(affId, amount, amount, amount, rootId);
-
-      return {
-        ok: true,
-        requestId: rootId,
-        rootId,
-        capTaken: amount,
-        split: false,
-        remainderRequestId: null,
-        removedPoolChildIds,
-      };
-    }
-
     decrementRootPool(db, rootId, amount);
-
-    if (poolRequest.id !== rootId && amount === total) {
-      removedPoolChildIds.push(poolRequest.id);
-      db.prepare('DELETE FROM requests WHERE id = ?').run(poolRequest.id);
-    }
-
+    const poolSync = syncPoolChildFromRoot(db, rootId);
     const childId = insertTakenChildRequest(db, root, amount, rootId, affId);
 
     return {
@@ -1561,7 +1698,9 @@ function takeRequest(db, requestId, affId, capTaken) {
       split: true,
       remainder: total - amount,
       remainderRequestId: childId,
-      removedPoolChildIds,
+      poolChildId: poolSync.poolChildId,
+      poolChildCreated: poolSync.created,
+      removedPoolChildIds: poolSync.removedId ? [poolSync.removedId] : [],
     };
   })();
 }
@@ -1589,12 +1728,16 @@ function releaseRequest(db, requestId, affId) {
       `).run(qty, rootId);
 
       db.prepare('DELETE FROM requests WHERE id = ?').run(requestId);
+      const poolSync = syncPoolChildFromRoot(db, rootId);
 
       return {
         ok: true,
         requestId,
         rootId,
         deleted: true,
+        poolChildId: poolSync.poolChildId,
+        poolChildCreated: poolSync.created,
+        removedPoolChildIds: poolSync.removedId ? [poolSync.removedId] : [],
       };
     }
 
@@ -1615,7 +1758,16 @@ function releaseRequest(db, requestId, affId) {
       WHERE id = ?
     `).run(requestId);
 
-    return { ok: true, requestId, rootId: requestId };
+    const poolSync = syncPoolChildFromRoot(db, requestId);
+
+    return {
+      ok: true,
+      requestId,
+      rootId: requestId,
+      poolChildId: poolSync.poolChildId,
+      poolChildCreated: poolSync.created,
+      removedPoolChildIds: poolSync.removedId ? [poolSync.removedId] : [],
+    };
   })();
 }
 
@@ -1782,6 +1934,11 @@ function setRemainingCapOnCreate(db, requestId, quantity) {
     SET remaining_cap = ?, updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
   `).run(quantity, requestId);
+
+  const row = db.prepare('SELECT id, status, split_from_id FROM requests WHERE id = ?').get(requestId);
+  if (row && row.status === 'new' && !row.split_from_id) {
+    syncPoolChildFromRoot(db, requestId);
+  }
 }
 
 function validateQuantityEdit(db, requestId, newQuantity) {
@@ -1810,6 +1967,11 @@ function applyQuantityEdit(db, requestId, newQuantity) {
     SET quantity = ?, remaining_cap = ?, updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
   `).run(newQuantity, newQuantity, requestId);
+
+  const row = db.prepare('SELECT split_from_id, status FROM requests WHERE id = ?').get(requestId);
+  if (row && !row.split_from_id && row.status === 'new') {
+    syncPoolChildFromRoot(db, requestId);
+  }
 
   return { ok: true };
 }

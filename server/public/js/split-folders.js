@@ -1,28 +1,15 @@
 (function () {
-  var LEGACY_STORAGE_KEY = 'rh-split-folders-collapsed';
-  var splitEffectsFrame = 0;
-  var pendingSplitRoots = new Set();
-  var pendingSplitReunify = false;
-  var fullSyncFrame = 0;
+  var STORAGE_KEY_PREFIX = 'rh-split-folders-expanded:';
 
   function storageKey() {
     var userId = document.body.getAttribute('data-rh-user-id') || '0';
-    return 'rh-split-folders-collapsed:' + userId;
+    return STORAGE_KEY_PREFIX + userId;
   }
 
   function readAllScopes() {
     try {
       var raw = sessionStorage.getItem(storageKey());
-      if (!raw) {
-        var legacy = sessionStorage.getItem(LEGACY_STORAGE_KEY);
-        if (legacy) {
-          var legacyIds = JSON.parse(legacy);
-          if (Array.isArray(legacyIds)) {
-            return { all: legacyIds };
-          }
-        }
-        return {};
-      }
+      if (!raw) return {};
       var parsed = JSON.parse(raw);
       return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
     } catch (_err) {
@@ -30,17 +17,26 @@
     }
   }
 
-  function readCollapsed(scope) {
+  function readExpanded(scope) {
     var all = readAllScopes();
     var ids = all[scope];
     return Array.isArray(ids) ? ids : [];
   }
 
-  function writeCollapsed(scope, ids) {
+  function writeExpanded(scope, ids) {
     var all = readAllScopes();
     all[scope] = ids;
     sessionStorage.setItem(storageKey(), JSON.stringify(all));
   }
+
+  function isExpanded(scope, rootId) {
+    return readExpanded(scope).indexOf(String(rootId)) !== -1;
+  }
+
+  var splitEffectsFrame = 0;
+  var pendingSplitRoots = new Set();
+  var pendingSplitReunify = false;
+  var fullSyncFrame = 0;
 
   function folderChildSelector(rootId) {
     return '[data-split-root="' + rootId + '"][data-is-subtask="1"]';
@@ -190,8 +186,7 @@
     if (!rootId) return;
     getActiveScopes().forEach(function (scope) {
       if (!scopeHasRoot(scope, rootId)) return;
-      var collapsed = readCollapsed(scope);
-      setFolderExpanded(String(rootId), collapsed.indexOf(String(rootId)) === -1, {
+      setFolderExpanded(String(rootId), isExpanded(scope, rootId), {
         scope: scope,
         markEdges: true,
       });
@@ -212,12 +207,11 @@
       var container = cfg.container;
       if (!container) return;
 
-      var collapsed = readCollapsed(scope);
       container.querySelectorAll('[data-is-split-root="1"]').forEach(function (root) {
         var rootId = String(root.getAttribute('data-id') || '');
         if (!rootId) return;
         seenRoots.add(rootId + ':' + scope);
-        setFolderExpanded(rootId, collapsed.indexOf(rootId) === -1, { scope: scope, markEdges: false });
+        setFolderExpanded(rootId, isExpanded(scope, rootId), { scope: scope, markEdges: false });
       });
     });
 
@@ -278,12 +272,11 @@
 
     scopes.forEach(function (scope) {
       if (!scopeHasRoot(scope, rootId)) return;
-      var collapsed = readCollapsed(scope);
-      var idx = collapsed.indexOf(String(rootId));
-      if (idx === -1) return;
-      collapsed.splice(idx, 1);
-      writeCollapsed(scope, collapsed);
-      setFolderExpanded(String(rootId), true, { scope: scope });
+      var expanded = readExpanded(scope);
+      var id = String(rootId);
+      if (expanded.indexOf(id) === -1) expanded.push(id);
+      writeExpanded(scope, expanded);
+      setFolderExpanded(id, true, { scope: scope });
     });
 
     syncSplitFolderFilters();
@@ -300,19 +293,20 @@
     if (!rootId) return;
 
     var scope = getViewScope(toggle);
-    var collapsed = readCollapsed(scope);
-    var idx = collapsed.indexOf(String(rootId));
+    var expanded = readExpanded(scope);
+    var id = String(rootId);
+    var idx = expanded.indexOf(id);
     if (idx === -1) {
-      collapsed.push(String(rootId));
-      writeCollapsed(scope, collapsed);
-      setFolderExpanded(String(rootId), false, { scope: scope });
+      expanded.push(id);
+      writeExpanded(scope, expanded);
+      setFolderExpanded(id, true, { scope: scope });
+      syncSplitFolderFilters();
       return;
     }
 
-    collapsed.splice(idx, 1);
-    writeCollapsed(scope, collapsed);
-    setFolderExpanded(String(rootId), true, { scope: scope });
-    syncSplitFolderFilters();
+    expanded.splice(idx, 1);
+    writeExpanded(scope, expanded);
+    setFolderExpanded(id, false, { scope: scope });
   });
 
   window.rhSyncSplitFolders = scheduleFullSplitSync;

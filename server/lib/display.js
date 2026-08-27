@@ -136,12 +136,32 @@ function formatTeamLabel(name) {
   return TEAM_LABELS[trimmed] || trimmed;
 }
 
+const STAGE_TONE_CLASSES = [
+  'rh-buyer-stage--olg',
+  'rh-buyer-stage--ost',
+  'rh-buyer-stage--oli',
+];
+
+function hashStageTone(stage) {
+  const key = String(stage || '').trim().toUpperCase();
+  if (!key) return 'rh-buyer-stage--default';
+  let hash = 0;
+  for (let i = 0; i < key.length; i += 1) {
+    hash = (hash * 31 + key.charCodeAt(i)) | 0;
+  }
+  return STAGE_TONE_CLASSES[Math.abs(hash) % STAGE_TONE_CLASSES.length];
+}
+
 function buyerStageTeamClass(teamName) {
   const label = formatTeamLabel(teamName).toUpperCase();
   if (label === 'OLG') return 'rh-buyer-stage--olg';
   if (label === 'OST') return 'rh-buyer-stage--ost';
   if (label === 'OLI') return 'rh-buyer-stage--oli';
   return 'rh-buyer-stage--default';
+}
+
+function buyerStageClass(stage) {
+  return hashStageTone(stage);
 }
 
 function formatRequestDisplayId(request) {
@@ -183,6 +203,7 @@ module.exports = {
   truncateNote,
   formatTeamLabel,
   buyerStageTeamClass,
+  buyerStageClass,
   formatAffPrice,
   TEAM_LABELS,
   GEO_FLAG_CODES,

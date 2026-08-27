@@ -728,32 +728,7 @@
     if (geo) geo.value = params.get('geo') || '';
     if (buyer) buyer.value = params.get('buyer_id') || '';
     if (assigned) assigned.value = params.get('assigned') || '';
-  }
-
-  function updateGeoFilterDisplay() {
-    var select = document.getElementById('filter-geo');
-    var display = document.getElementById('filter-geo-display');
-    if (!select || !display) return;
-
-    var option = select.options[select.selectedIndex];
-
-    if (!select.value) {
-      display.innerHTML = '<span class="rh-filter-geo-placeholder">All GEOs</span>';
-      return;
-    }
-
-    var name = option.getAttribute('data-name');
-    var code = option.getAttribute('data-code') || select.value;
-    var flagUrl = option.getAttribute('data-flag-url');
-    var textHtml = name
-      ? '<span class="rh-geo-cell-code">' + code + '</span> | ' + name
-      : '<span class="rh-geo-cell-code">' + code + '</span>';
-    var flagHtml = flagUrl
-      ? '<img src="' + flagUrl + '" alt="" class="rh-geo-flag" width="16" height="12" loading="lazy" decoding="async">'
-      : '';
-
-    display.innerHTML =
-      '<span class="rh-geo-cell">' + flagHtml + '<span class="rh-geo-cell-text">' + textHtml + '</span></span>';
+    if (window.rhFilterCombo) window.rhFilterCombo.syncAll(form);
   }
 
   function updateFilterFieldStates() {
@@ -765,7 +740,7 @@
       field.classList.toggle('rh-filter-field--active', !!(select && select.value));
     });
 
-    updateGeoFilterDisplay();
+    if (window.rhFilterCombo) window.rhFilterCombo.syncAll(form);
     updateClearFiltersButton();
   }
 
@@ -840,6 +815,7 @@
 
   function closeMobileFilters(options) {
     options = options || {};
+    if (window.rhFilterCombo) window.rhFilterCombo.closeOpen();
     if (options.discard) {
       syncFormFromUrl();
       updateFilterFieldStates();
@@ -1201,6 +1177,7 @@
     form.querySelectorAll('select').forEach(function (select) {
       select.value = '';
     });
+    if (window.rhFilterCombo) window.rhFilterCombo.syncAll(form);
     updateFilterFieldStates();
   }
 
@@ -1243,6 +1220,10 @@
 
     document.body.addEventListener('keydown', function (evt) {
       if (evt.key !== 'Escape') return;
+      if (window.rhFilterCombo && window.rhFilterCombo.closeOpen({ focusTrigger: true })) {
+        evt.preventDefault();
+        return;
+      }
       if (isMobileSortOpen() && sortPhase !== 'opening') {
         evt.preventDefault();
         closeMobileSort({ discard: true });
@@ -1452,6 +1433,7 @@
 
       relocateMobileSort();
       relocateMobileFilters();
+      if (window.rhFilterCombo) window.rhFilterCombo.enhanceAll();
       syncSortFormFromUrl();
       syncFormFromUrl();
       updateSortHeaders();
@@ -1802,6 +1784,28 @@
   } else {
     initRequestsList();
   }
+
+  document.body.addEventListener('htmx:oobAfterSwap', function (evt) {
+    var elt = (evt.detail && evt.detail.elt) || evt.target;
+    if (elt && elt.tagName === 'TR') finalizeInsertedTableRow(elt);
+  });
+
+  document.body.addEventListener('htmx:oobErrorNoTarget', function (evt) {
+    var item = evt.detail && evt.detail.content;
+    if (!item || !item.id) return;
+
+    var containerId = containerForItemId(item.id);
+    var container = document.getElementById(containerId);
+    if (!container) return;
+
+    insertItemNode(item, container);
+    var node = document.getElementById(item.id);
+    if (node) {
+      finalizeInsertedTableRow(node);
+      applyFiltersToRow(node);
+      if (typeof htmx !== 'undefined') htmx.process(node);
+    }
+  });
 
   document.body.addEventListener('htmx:afterSwap', function (evt) {
     if (!evt.detail.target || !evt.detail.target.id) return;

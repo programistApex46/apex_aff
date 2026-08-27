@@ -259,7 +259,7 @@ async function notifyRequestClaimed(request, affUser, claimResult, remainderRequ
           chatId: ctx.buyer_chat_id,
           text: [
             `✂️ Request #${formatRequestDisplayId(request)} has been split`,
-            `Aff: ${affLabel} claimed ${claimResult.capTaken} of ${request.quantity + claimResult.remainder}`,
+            `Aff: ${affLabel} claimed ${claimResult.capTaken} of ${request.quantity}`,
             `Part: #${formatRequestDisplayId(remainderRequest)} (${claimResult.capTaken} leads)`,
           ].join('\n'),
         });

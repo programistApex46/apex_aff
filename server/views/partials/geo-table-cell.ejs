@@ -5,10 +5,14 @@
   var geoName = geoTableName(geo);
   var geoLabel = geoName ? geoCode + ' | ' + geoName : geo;
   var geoCompact = typeof compact !== 'undefined' && compact === true;
+  var geoFlagOnly = typeof flagOnly !== 'undefined' ? flagOnly === true : !geoCompact;
 %>
-  <span class="rh-geo-cell<%= geoCompact ? ' rh-geo-cell--card' : '' %>" title="<%= geoLabel %>">
+  <span
+    class="rh-geo-cell<%= geoCompact ? ' rh-geo-cell--card' : '' %><%= geoFlagOnly ? ' rh-geo-cell--flag' : '' %>"
+    data-geo-label="<%= geoLabel %>"
+  >
     <%- include('geo-flag', { geo: geo }) %>
-    <span class="rh-geo-cell-text">
+    <span class="rh-geo-cell-text<%= geoFlagOnly ? ' sr-only' : '' %>">
       <% if (geoCompact) { %>
         <span class="rh-geo-cell-code"><%= geoCode %></span>
       <% } else if (geoName) { %>
