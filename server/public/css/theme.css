@@ -5063,15 +5063,21 @@ body.rh-quiz-open {
 }
 
 :root {
-  --rh-split-group-color: #7c3aed;
-  --rh-split-group-soft: rgba(124, 58, 237, 0.1);
-  --rh-split-group-muted: rgba(124, 58, 237, 0.34);
+  --rh-split-group-color: #64748b;
+  --rh-split-group-soft: color-mix(in srgb, #64748b 12%, transparent);
+  --rh-split-group-muted: color-mix(in srgb, #64748b 22%, transparent);
+  --rh-subtask-bg: color-mix(in srgb, #0f172a 3.5%, var(--rh-surface));
+  --rh-subtask-bg-hover: color-mix(in srgb, #0f172a 6%, var(--rh-surface));
+  --rh-subtask-rail: #94a3b8;
 }
 
 [data-theme="rh-dark"] {
-  --rh-split-group-color: #a78bfa;
-  --rh-split-group-soft: rgba(167, 139, 250, 0.14);
-  --rh-split-group-muted: rgba(167, 139, 250, 0.38);
+  --rh-split-group-color: #94a3b8;
+  --rh-split-group-soft: color-mix(in srgb, #94a3b8 16%, transparent);
+  --rh-split-group-muted: color-mix(in srgb, #94a3b8 28%, transparent);
+  --rh-subtask-bg: color-mix(in srgb, #fff 4.5%, var(--rh-surface));
+  --rh-subtask-bg-hover: color-mix(in srgb, #fff 7.5%, var(--rh-surface));
+  --rh-subtask-rail: #64748b;
 }
 
 .rh-request-row--split-member > .rh-td-meta:first-child {
@@ -5213,15 +5219,15 @@ body.rh-quiz-open {
 
 .rh-request-row--split-target td,
 .rh-request-card--split-target {
-  box-shadow: inset 0 0 0 999px rgba(124, 58, 237, 0.12);
+  box-shadow: inset 0 0 0 999px color-mix(in srgb, var(--rh-split-group-color) 10%, transparent);
 }
 
 @keyframes rh-split-target-pulse {
   0% {
-    box-shadow: inset 0 0 0 999px rgba(124, 58, 237, 0.18);
+    box-shadow: inset 0 0 0 999px color-mix(in srgb, var(--rh-split-group-color) 16%, transparent);
   }
   100% {
-    box-shadow: inset 0 0 0 999px rgba(124, 58, 237, 0);
+    box-shadow: inset 0 0 0 999px color-mix(in srgb, var(--rh-split-group-color) 0%, transparent);
   }
 }
 
@@ -5231,6 +5237,32 @@ body.rh-quiz-open {
 
 .rh-request-row--split-member.rh-request-row--subtask {
   background: transparent;
+}
+
+.rh-data-table tbody tr.rh-request-row--subtask > td {
+  background: var(--rh-subtask-bg);
+}
+
+.rh-data-table tbody tr.rh-request-row--subtask:hover > td {
+  background: var(--rh-subtask-bg-hover);
+}
+
+.rh-data-table.rh-requests-table tbody tr.rh-request-row--subtask > td.rh-td-language {
+  box-shadow: -12px 0 0 0 var(--rh-subtask-bg);
+}
+
+.rh-data-table.rh-requests-table tbody tr.rh-request-row--subtask:hover > td.rh-td-language {
+  box-shadow: -12px 0 0 0 var(--rh-subtask-bg-hover);
+}
+
+.rh-request-row--subtask > .rh-td-meta:first-child {
+  box-shadow: inset 3px 0 0 var(--rh-subtask-rail);
+}
+
+.rh-request-row--subtask .rh-request-row-id {
+  font-weight: 600;
+  font-size: 0.8125rem;
+  color: var(--rh-text-secondary);
 }
 
 /* Split folder groups (accordion) */
@@ -5280,7 +5312,7 @@ body.rh-quiz-open {
 .rh-split-folder-indent {
   display: inline-block;
   flex-shrink: 0;
-  width: 1.125rem;
+  width: 1.375rem;
 }
 
 .rh-split-folder-count {
@@ -5301,37 +5333,25 @@ body.rh-quiz-open {
 }
 
 .rh-split-folder-edge-first.rh-request-row > td,
-.rh-split-folder-edge-first.rh-request-card {
-  border-top: 1px solid var(--rh-split-group-muted);
-}
-
+.rh-split-folder-edge-first.rh-request-card,
 .rh-split-folder-edge-last.rh-request-row > td,
 .rh-split-folder-edge-last.rh-request-card {
-  border-bottom: 1px solid var(--rh-split-group-muted);
-}
-
-.rh-split-folder-edge-first.rh-split-folder-root.rh-request-row > td,
-.rh-split-folder-edge-first.rh-split-folder-root.rh-request-card {
-  background: color-mix(in srgb, var(--rh-split-group-soft) 55%, var(--rh-surface));
-}
-
-.rh-split-folder-edge-first.rh-request-row--subtask > td,
-.rh-split-folder-edge-first.rh-request-card--subtask {
-  background: color-mix(in srgb, var(--rh-split-group-soft) 28%, var(--rh-surface));
+  border-color: var(--rh-border);
 }
 
 .rh-request-row--subtask > .rh-td-meta:first-child .rh-split-folder-id {
-  padding-left: 0.125rem;
+  padding-left: 0.25rem;
 }
 
 .rh-request-card--subtask {
   margin-left: 0.875rem;
-  border-left: 2px solid var(--rh-split-group-muted);
+  border-left: 3px solid var(--rh-subtask-rail);
+  background: var(--rh-subtask-bg);
 }
 
 .rh-request-card--split-root.rh-split-folder-root {
-  border-color: var(--rh-split-group-muted);
-  background: color-mix(in srgb, var(--rh-split-group-soft) 45%, var(--rh-surface));
+  border-color: var(--rh-border);
+  background: var(--rh-surface);
 }
 
 .rh-request-card-id .rh-split-folder-id {
