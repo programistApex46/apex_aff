@@ -107,7 +107,10 @@
   </form>
 
   <section class="rh-profile-block">
-    <h2 class="rh-profile-group-title">Telegram</h2>
+    <h2 class="rh-profile-group-title rh-profile-group-title--with-icon">
+      <span class="rh-tg-title-icon" aria-hidden="true"><%- include('../partials/icon', { name: 'telegram' }) %></span>
+      Telegram
+    </h2>
     <% if (telegramConnected) { %>
       <div class="rh-profile-group">
         <div class="rh-profile-row rh-profile-row--static">
@@ -131,39 +134,50 @@
       </div>
       <p class="rh-profile-hint">Request notifications will be sent to Telegram. To connect a different account, unlink the current one first.</p>
     <% } else { %>
-      <p class="rh-profile-lead">
-        To receive notifications, link your account via the bot
-        <a href="<%= telegramBotUrl %>" target="_blank" rel="noopener noreferrer">@<%= telegramBotUsername %></a>.
-        You do not need to enter a chat ID.
-      </p>
-      <ol class="rh-profile-steps">
-        <li>Tap <strong>Open bot</strong> — Telegram will open.</li>
-        <li>In the chat, tap <strong>Start</strong>.</li>
-        <li>Return here and tap <strong>Check</strong>.</li>
-      </ol>
-      <% if (telegramBindLink) { %>
-        <a href="<%= telegramBindLink %>" class="rh-profile-pill" target="_blank" rel="noopener noreferrer">Open bot</a>
-        <form
-          method="post"
-          action="/profile/telegram/refresh"
-          class="rh-profile-inline-form"
-          hx-post="/profile/telegram/refresh"
-          hx-target="#rh-page"
-          hx-swap="innerHTML show:none"
-        >
-          <button type="submit" class="rh-profile-text-action">New link</button>
-        </form>
-        <button
-          type="button"
-          class="rh-profile-text-action"
-          hx-get="/profile"
-          hx-target="#rh-page"
-          hx-swap="innerHTML show:none"
-        >Check</button>
-        <p class="rh-profile-hint">The link expires in 30 minutes.</p>
-      <% } else { %>
-        <p class="rh-profile-hint">The Telegram bot is not configured on the server. Contact an administrator.</p>
-      <% } %>
+      <div class="rh-tg-connect">
+        <div class="rh-tg-connect-head">
+          <span class="rh-tg-logo" aria-hidden="true"><%- include('../partials/icon', { name: 'telegram' }) %></span>
+          <div class="rh-tg-connect-copy">
+            <p class="rh-profile-lead">
+              Link Telegram to get request updates in
+              <a href="<%= telegramBotUrl %>" target="_blank" rel="noopener noreferrer">@<%= telegramBotUsername %></a>.
+              You do not need to enter a chat ID.
+            </p>
+          </div>
+        </div>
+        <ol class="rh-profile-steps">
+          <li>Tap <strong>Open Telegram</strong> and press <strong>Start</strong> in the bot.</li>
+          <li>Return here and tap <strong>Check</strong> if the status does not update.</li>
+        </ol>
+        <% if (telegramBindLink) { %>
+          <a href="<%= telegramBindLink %>" class="rh-profile-pill rh-tg-cta" target="_blank" rel="noopener noreferrer">
+            <%- include('../partials/icon', { name: 'telegram' }) %>
+            Open Telegram
+          </a>
+          <div class="rh-tg-secondary">
+            <form
+              method="post"
+              action="/profile/telegram/refresh"
+              class="rh-profile-inline-form"
+              hx-post="/profile/telegram/refresh"
+              hx-target="#rh-page"
+              hx-swap="innerHTML show:none"
+            >
+              <button type="submit" class="rh-tg-secondary-btn">New link</button>
+            </form>
+            <button
+              type="button"
+              class="rh-tg-secondary-btn"
+              hx-get="/profile"
+              hx-target="#rh-page"
+              hx-swap="innerHTML show:none"
+            >Check</button>
+          </div>
+          <p class="rh-profile-hint">The link expires in 30 minutes.</p>
+        <% } else { %>
+          <p class="rh-profile-hint">The Telegram bot is not configured on the server. Contact an administrator.</p>
+        <% } %>
+      </div>
     <% } %>
   </section>
 

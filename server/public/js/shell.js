@@ -578,6 +578,19 @@
       if (typeof window.refreshRequestsList === 'function') window.refreshRequestsList();
     });
 
+    document.body.addEventListener('htmx:beforeRequest', function (evt) {
+      var elt = evt.detail && evt.detail.elt;
+      if (!elt || !elt.getAttribute) return;
+      if ((elt.getAttribute('hx-target') || '') !== '#rh-page') return;
+      var url = elt.getAttribute('hx-get') || '';
+      if (url !== '/' && url.indexOf('/?') !== 0) return;
+      if (!document.getElementById('requests-main')) return;
+      evt.preventDefault();
+      if (typeof window.refreshRequestsList === 'function') {
+        window.refreshRequestsList();
+      }
+    });
+
     document.body.addEventListener('htmx:afterSwap', function (evt) {
       if (evt.detail && evt.detail.target && evt.detail.target.id === 'rh-page') {
         applyPageMeta(evt.detail.target);

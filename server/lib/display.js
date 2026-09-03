@@ -1,30 +1,4 @@
-const GEO_FLAG_CODES = {
-  UA: 'ua',
-  PL: 'pl',
-  DE: 'de',
-  US: 'us',
-  GB: 'gb',
-  CA: 'ca',
-  AU: 'au',
-  BR: 'br',
-  MX: 'mx',
-  IN: 'in',
-  KZ: 'kz',
-};
-
-const GEO_NAMES = {
-  UA: 'Ukraine',
-  PL: 'Poland',
-  DE: 'Germany',
-  US: 'United States',
-  GB: 'United Kingdom',
-  CA: 'Canada',
-  AU: 'Australia',
-  BR: 'Brazil',
-  MX: 'Mexico',
-  IN: 'India',
-  KZ: 'Kazakhstan',
-};
+const { GEO_FLAG_CODES, GEO_NAMES, GEO_CODES } = require('./geos');
 
 function geoFlagUrl(geo) {
   if (!geo || typeof geo !== 'string') return null;
@@ -208,4 +182,5 @@ module.exports = {
   TEAM_LABELS,
   GEO_FLAG_CODES,
   GEO_NAMES,
+  GEO_CODES,
 };

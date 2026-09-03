@@ -11,6 +11,19 @@
   var pendingX = 0;
   var pendingY = 0;
 
+  function isCoarsePointer() {
+    return (
+      window.matchMedia('(hover: none)').matches ||
+      window.matchMedia('(pointer: coarse)').matches
+    );
+  }
+
+  function isActionTarget(target) {
+    return !!target.closest(
+      'button, a, input, textarea, select, label, .rh-table-actions, .rh-table-action-btn, .rh-request-card-actions, .rh-request-card-aff-actions, .rh-split-folder-toggle'
+    );
+  }
+
   function getTip() {
     if (!tipEl) {
       tipEl = document.createElement('div');
@@ -165,6 +178,9 @@
   }
 
   document.body.addEventListener('mouseover', function (evt) {
+    if (isCoarsePointer()) return;
+    if (evt.sourceCapabilities && evt.sourceCapabilities.firesTouchEvents) return;
+
     var aff = findAff(evt.target);
     if (aff) {
       if (aff === hoverAff) return;
@@ -187,7 +203,7 @@
     }
 
     if (!evt.target.closest('.rh-table-desktop, .rh-cards-mobile')) return;
-    if (evt.target.closest('.rh-table-actions')) return;
+    if (isActionTarget(evt.target)) return;
 
     var row = findHoverRow(evt.target);
     if (!row) return;
@@ -263,4 +279,8 @@
 
   document.body.addEventListener('scroll', hideTip, true);
   window.addEventListener('blur', hideTip);
+  document.body.addEventListener('pointerdown', function (evt) {
+    if (evt.pointerType && evt.pointerType !== 'mouse') hideTip();
+  });
+  document.body.addEventListener('touchstart', hideTip, { passive: true });
 })();

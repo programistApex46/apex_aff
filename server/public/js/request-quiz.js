@@ -183,12 +183,14 @@
   }
 
   function bindGeoInput() {
-    var input = $('quiz-geo');
-    if (!input) return;
+    var select = $('quiz-geo');
+    var root = getRoot();
+    if (window.rhFilterCombo && root) window.rhFilterCombo.enhanceAll(root);
+    if (!select) return;
 
-    input.value = state.geo || '';
-    input.addEventListener('input', function () {
-      state.geo = input.value;
+    if (state.geo) select.value = state.geo.toUpperCase();
+    select.addEventListener('change', function () {
+      state.geo = select.value;
       showError(1, '');
     });
   }

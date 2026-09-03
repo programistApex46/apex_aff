@@ -1,12 +1,13 @@
 const express = require('express');
 const { getDb } = require('../db');
 const { requireRole } = require('../middleware/auth');
-const { notifyNewRequest, notifyRequestClaimed, notifyAssignmentDone } = require('../telegram');
+const { notifyNewRequest, notifyRequestClaimed, notifyRequestReleased, notifyAssignmentDone } = require('../telegram');
+const { GEO_CODES, isKnownGeo } = require('../lib/geos');
 const { broadcast } = require('../sse');
 
 const router = express.Router();
 
-const COMMON_GEOS = ['UA', 'PL', 'DE', 'US', 'GB', 'CA', 'AU', 'BR', 'MX', 'IN', 'KZ'];
+const COMMON_GEOS = GEO_CODES;
 const REQUEST_STATUSES = ['draft', 'new', 'in_progress', 'done'];
 const FILTER_STATUSES = ['open', 'draft', 'new', 'in_progress', 'approved', 'rejected'];
 
@@ -192,12 +193,11 @@ function getBuyerDraft(db, buyerId) {
 }
 
 function draftToForm(draft, commonGeos) {
-  let geo = draft.geo || '';
+  let geo = (draft.geo || '').trim().toUpperCase();
   let geo_other = '';
 
-  if (geo && !commonGeos.includes(geo)) {
+  if (geo && commonGeos && !commonGeos.includes(geo) && !isKnownGeo(geo)) {
     geo_other = geo;
-    geo = '__other__';
   }
 
   return {
@@ -1034,8 +1034,8 @@ router.post('/:id/take', requireRole('aff'), (req, res) => {
     ? getRequestById(db, result.remainderRequestId, user)
     : null;
 
-  notifyRequestClaimed(request, user, result, childRequest);
-  broadcastRequestUpdated(request);
+  notifyRequestClaimed(request || requestBefore, user, result, childRequest);
+  broadcastRequestUpdated(request || requestBefore);
   if (childRequest) {
     broadcastRequestUpdated(childRequest);
   }
@@ -1109,6 +1109,8 @@ router.post('/:id/release', requireRole('aff'), (req, res) => {
       oob: true,
     });
   }
+
+  notifyRequestReleased(request, user);
 
   const rows = getSplitTreeForRender(db, result.rootId || requestId, user);
   const removeIds = result.deleted ? [requestId] : [];

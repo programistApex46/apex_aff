@@ -1,4 +1,9 @@
 (function () {
+  if (window.rhFilterCombo && window.rhFilterCombo.enhanceAll) {
+    window.rhFilterCombo.enhanceAll();
+    return;
+  }
+
   var openCombo = null;
   var comboSeq = 0;
 
@@ -72,6 +77,18 @@
     });
   }
 
+  function scrollOptionIntoList(root, item) {
+    var list = root.querySelector('.rh-combo-list');
+    if (!list || !item || item.hidden) return;
+    var itemTop = item.offsetTop;
+    var itemBottom = itemTop + item.offsetHeight;
+    if (itemTop < list.scrollTop) {
+      list.scrollTop = itemTop;
+    } else if (itemBottom > list.scrollTop + list.clientHeight) {
+      list.scrollTop = itemBottom - list.clientHeight;
+    }
+  }
+
   function setActiveIndex(root, index) {
     var items = visibleItems(root);
     root._activeIndex = index;
@@ -79,7 +96,7 @@
       var active = i === index;
       item.classList.toggle('is-active', active);
       item.setAttribute('aria-selected', active ? 'true' : 'false');
-      if (active) item.scrollIntoView({ block: 'nearest' });
+      if (active) scrollOptionIntoList(root, item);
     });
   }
 
@@ -156,25 +173,44 @@
     var input = root._input;
     var select = root._select;
     if (!input || !select) return;
-    var query = String(input.value || '').trim().toLowerCase();
+    var query = String(input.value || '').trim();
     if (!query) {
       chooseValue(root, '');
       return;
     }
 
+    var needle = query.toLowerCase();
     var match = Array.prototype.find.call(select.options, function (option) {
-      return optionSearchText(option) === query || optionLabel(option).toLowerCase() === query;
+      return optionSearchText(option) === needle || optionLabel(option).toLowerCase() === needle;
     });
     if (!match) {
       match = Array.prototype.find.call(select.options, function (option) {
-        return optionSearchText(option).indexOf(query) !== -1;
+        return optionSearchText(option).indexOf(needle) !== -1;
       });
     }
     if (match) {
       chooseValue(root, match.value);
       return;
     }
+    if (root.hasAttribute('data-rh-combo-allow-custom')) {
+      chooseValue(root, ensureCustomOption(select, query));
+      return;
+    }
     closeCombo(root);
+  }
+
+  function ensureCustomOption(select, raw) {
+    var value = String(raw || '').trim().toUpperCase();
+    var match = Array.prototype.find.call(select.options, function (option) {
+      return String(option.value).toUpperCase() === value;
+    });
+    if (match) return match.value;
+    var option = document.createElement('option');
+    option.value = value;
+    option.textContent = value;
+    option.setAttribute('data-code', value);
+    select.appendChild(option);
+    return value;
   }
 
   function buildList(root) {
@@ -228,10 +264,27 @@
     }
   }
 
+  function stripComboWidgets(root) {
+    root.querySelectorAll('.rh-combo-trigger, .rh-combo-panel').forEach(function (el) {
+      el.remove();
+    });
+    root.classList.remove('is-ready');
+    delete root.dataset.rhComboReady;
+    root._select = null;
+    root._input = null;
+  }
+
   function enhance(root) {
-    if (!root || root.dataset.rhComboReady === '1') return;
+    if (!root) return;
     var select = root.querySelector('select');
     if (!select) return;
+
+    if (root.dataset.rhComboReady === '1' && root._select === select && root._input) {
+      syncTrigger(root);
+      return;
+    }
+
+    stripComboWidgets(root);
 
     comboSeq += 1;
     var listId = 'rh-combo-list-' + comboSeq;
@@ -245,6 +298,7 @@
     select.classList.add('rh-combo-native');
     select.setAttribute('tabindex', '-1');
     select.setAttribute('aria-hidden', 'true');
+    select.style.display = 'none';
 
     var input = document.createElement('input');
     input.type = 'text';
@@ -376,6 +430,11 @@
     syncAll: syncAll,
     closeOpen: closeOpen,
   };
+
+  document.body.addEventListener('htmx:afterSwap', function (evt) {
+    var target = evt.detail && evt.detail.target;
+    if (target) enhanceAll(target);
+  });
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () {

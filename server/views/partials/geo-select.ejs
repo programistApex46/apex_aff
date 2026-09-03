@@ -1,0 +1,39 @@
+<%
+  var geoSelectId = typeof selectId !== 'undefined' ? selectId : 'geo';
+  var geoSelectName = typeof selectName !== 'undefined' ? selectName : 'geo';
+  var selectedGeo = typeof selected !== 'undefined' ? String(selected || '') : '';
+  if (selectedGeo === '__other__') {
+    selectedGeo = typeof selectedOther !== 'undefined' ? String(selectedOther || '') : '';
+  }
+  selectedGeo = selectedGeo.trim().toUpperCase();
+  var geoList = typeof commonGeos !== 'undefined' && commonGeos && commonGeos.length
+    ? commonGeos
+    : [];
+  var placeholder = typeof placeholder !== 'undefined' ? placeholder : 'Select GEO';
+  var comboClass = typeof comboClass !== 'undefined' ? comboClass : '';
+%>
+<div class="rh-combo rh-combo--geo<%= comboClass ? ' ' + comboClass : '' %>" data-rh-combo data-rh-combo-allow-custom data-search-placeholder="Search country or code">
+  <select id="<%= geoSelectId %>" name="<%= geoSelectName %>" class="select select-bordered select-sm w-full" title="GEO">
+    <option value=""><%= placeholder %></option>
+    <% geoList.forEach(function(g) {
+      var code = String(g).trim().toUpperCase();
+    %>
+      <option
+        value="<%= code %>"
+        data-code="<%= code %>"
+        data-name="<%= geoTableName(code) || '' %>"
+        data-flag-url="<%= geoFlagUrl(code) || '' %>"
+        <%= selectedGeo === code ? 'selected' : '' %>
+      ><%= geoTableLabel(code) %></option>
+    <% }) %>
+    <% if (selectedGeo && geoList.indexOf(selectedGeo) === -1) { %>
+      <option
+        value="<%= selectedGeo %>"
+        data-code="<%= selectedGeo %>"
+        data-name="<%= geoTableName(selectedGeo) || '' %>"
+        data-flag-url="<%= geoFlagUrl(selectedGeo) || '' %>"
+        selected
+      ><%= geoTableLabel(selectedGeo) %></option>
+    <% } %>
+  </select>
+</div>

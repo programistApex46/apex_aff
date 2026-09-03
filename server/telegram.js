@@ -249,6 +249,7 @@ async function notifyNewRequest(request) {
 
 async function notifyRequestClaimed(request, affUser, claimResult, remainderRequest) {
   try {
+    if (!request) return;
     const ctx = getBuyerContext(request.buyer_id);
     const entries = [];
     const affLabel = affUser.stage || affUser.username;
@@ -275,16 +276,28 @@ async function notifyRequestClaimed(request, affUser, claimResult, remainderRequ
       }
     }
 
-    if (ctx?.teamlead_chat_id && claimResult.split && remainderRequest) {
-      entries.push({
-        chatId: ctx.teamlead_chat_id,
-        text: [
-          `✂️ Team request #${formatRequestDisplayId(request)} split`,
-          `Buyer: ${request.buyer_stage}`,
-          `Aff: ${affLabel} claimed ${claimResult.capTaken}`,
-          `Part: #${formatRequestDisplayId(remainderRequest)} (${claimResult.capTaken} leads)`,
-        ].join('\n'),
-      });
+    if (ctx?.teamlead_chat_id) {
+      if (claimResult.split && remainderRequest) {
+        entries.push({
+          chatId: ctx.teamlead_chat_id,
+          text: [
+            `✂️ Team request #${formatRequestDisplayId(request)} split`,
+            `Buyer: ${request.buyer_stage}`,
+            `Aff: ${affLabel} claimed ${claimResult.capTaken}`,
+            `Part: #${formatRequestDisplayId(remainderRequest)} (${claimResult.capTaken} leads)`,
+          ].join('\n'),
+        });
+      } else {
+        entries.push({
+          chatId: ctx.teamlead_chat_id,
+          text: [
+            `🔄 Team request #${formatRequestDisplayId(request)} taken in progress`,
+            `Buyer: ${request.buyer_stage}`,
+            `Aff: ${affLabel}`,
+            `Cap: ${claimResult.capTaken}`,
+          ].join('\n'),
+        });
+      }
     }
 
     if (entries.length === 0) return;
@@ -343,11 +356,52 @@ async function notifyRequestDone(request) {
   return notifyAssignmentDone(request);
 }
 
+async function notifyRequestReleased(request, affUser) {
+  try {
+    if (!request) return;
+
+    const ctx = getBuyerContext(request.buyer_id);
+    const entries = [];
+    const affLabel = affUser?.stage || affUser?.username || '—';
+    const displayId = formatRequestDisplayId(request);
+    const cap = request.quantity;
+
+    if (ctx?.buyer_chat_id) {
+      entries.push({
+        chatId: ctx.buyer_chat_id,
+        text: [
+          `🚫 Request #${displayId} was cancelled`,
+          `Aff: ${affLabel}`,
+          `Cap: ${cap}`,
+        ].join('\n'),
+      });
+    }
+
+    if (ctx?.teamlead_chat_id) {
+      entries.push({
+        chatId: ctx.teamlead_chat_id,
+        text: [
+          `🚫 Team request #${displayId} was cancelled`,
+          `Buyer: ${request.buyer_stage}`,
+          `Aff: ${affLabel}`,
+          `Cap: ${cap}`,
+        ].join('\n'),
+      });
+    }
+
+    if (entries.length === 0) return;
+    await sendUniqueMessages(entries);
+  } catch (err) {
+    console.error('notifyRequestReleased failed:', err.message);
+  }
+}
+
 module.exports = {
   initTelegramBot,
   safeSend,
   notifyNewRequest,
   notifyRequestClaimed,
+  notifyRequestReleased,
   notifyAssignmentDone,
   notifyRequestDone,
 };

@@ -35,19 +35,16 @@
         <span class="label-text mb-1">Stage</span>
         <input type="text" class="input input-bordered w-full input-sm" value="<%= userStage(user) %>" disabled />
       </label>
-      <label class="form-control w-full">
+      <div class="form-control w-full">
         <span class="label-text mb-1">GEO</span>
-        <select id="geo" name="geo" class="select select-bordered select-sm w-full" onchange="toggleGeoOther()">
-          <option value="">Select…</option>
-          <% commonGeos.forEach(function(g) { %>
-            <option value="<%= g %>" <%= form.geo === g ? 'selected' : '' %>><%= g %></option>
-          <% }) %>
-          <option value="__other__" <%= form.geo === '__other__' ? 'selected' : '' %>>Other</option>
-        </select>
-      </label>
-      <div id="geo-other-field" class="form-control w-full" style="display: none;">
-        <span class="label-text mb-1">Other GEO</span>
-        <input type="text" name="geo_other" class="input input-bordered w-full input-sm" value="<%= form.geo_other || '' %>" placeholder="e.g. IT" />
+        <%- include('../geo-select', {
+          commonGeos: commonGeos,
+          selected: form.geo,
+          selectedOther: form.geo_other,
+          selectId: 'geo',
+          selectName: 'geo',
+          placeholder: 'Search country or code',
+        }) %>
       </div>
       <label class="form-control w-full">
         <span class="label-text mb-1">Language</span>
@@ -75,16 +72,6 @@
 </div>
 
 <script>
-  function toggleGeoOther() {
-    var geo = document.getElementById('geo').value;
-    var field = document.getElementById('geo-other-field');
-    if (!field) return;
-    var input = field.querySelector('input');
-    if (geo === '__other__') { field.style.display = ''; input.required = true; }
-    else { field.style.display = 'none'; input.required = false; }
-  }
-  toggleGeoOther();
-
   (function () {
     var form = document.getElementById('request-create-form');
     if (!form) return;
@@ -94,9 +81,7 @@
       var qty = form.querySelector('[name=quantity]').value;
       var funnel = form.querySelector('[name=funnel]').value.trim();
       var comment = form.querySelector('[name=comment]').value.trim();
-      var geoOther = form.querySelector('[name=geo_other]');
-      var other = geoOther ? geoOther.value.trim() : '';
-      return !!(geo || qty || funnel || comment || other);
+      return !!(geo || qty || funnel || comment);
     }
 
     function saveDraftAndClose() {

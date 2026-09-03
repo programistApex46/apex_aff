@@ -33,23 +33,15 @@
       <div class="rh-quiz-step-inner">
         <h2 class="rh-quiz-title">GEO</h2>
         <p class="rh-quiz-subtitle">Where should leads come from?</p>
-        <div class="rh-profile-group">
-          <label class="rh-profile-row">
-            <input
-              type="text"
-              id="quiz-geo"
-              class="rh-profile-input rh-profile-input--block"
-              list="quiz-geo-list"
-              value="<%= initialGeo %>"
-              placeholder="Select or type, e.g. UA"
-              autocomplete="off"
-            >
-          </label>
-          <datalist id="quiz-geo-list">
-            <% commonGeos.forEach(function(g) { %>
-              <option value="<%= g %>"></option>
-            <% }) %>
-          </datalist>
+        <div class="rh-quiz-geo">
+          <%- include('../geo-select', {
+            commonGeos: commonGeos,
+            selected: initialGeo,
+            selectId: 'quiz-geo',
+            selectName: 'geo',
+            placeholder: 'Search country or code',
+            comboClass: 'rh-combo--quiz',
+          }) %>
         </div>
         <p class="rh-quiz-error hidden" id="quiz-error-1"></p>
       </div>
